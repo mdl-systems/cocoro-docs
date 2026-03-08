@@ -1,0 +1,21 @@
+# Docusaurus ビルド成果物
+build/
+.docusaurus/
+
+# 依存ライブラリ
+node_modules/
+
+# macOS
+.DS_Store
+
+# エディタ設定
+.vscode/
+.idea/
+
+# ログ
+*.log
+npm-debug.log*
+
+# 環境変数
+.env
+.env.local

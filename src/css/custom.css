@@ -1,0 +1,337 @@
+/**
+ * Cocoro OS — カスタムテーマ
+ * ブランドカラー: Cocoro パープル (#7B5EA7)
+ * コンセプト: 意識・知性・温もりを感じるトーン
+ */
+
+/* === カラーパレット === */
+:root {
+  --ifm-color-primary: #7B5EA7;
+  --ifm-color-primary-dark: #6B4E97;
+  --ifm-color-primary-darker: #5E4385;
+  --ifm-color-primary-darkest: #4A3269;
+  --ifm-color-primary-light: #8B6EB7;
+  --ifm-color-primary-lighter: #9B7EC7;
+  --ifm-color-primary-lightest: #B59FD8;
+
+  --ifm-background-color: #FDFCF9;
+  --ifm-background-surface-color: #F7F4EF;
+
+  --ifm-font-family-base: 'Inter', 'Noto Sans JP', system-ui, -apple-system, sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+  --ifm-code-font-size: 90%;
+  --ifm-navbar-background-color: #FDFCF9;
+  --ifm-navbar-shadow: 0 1px 0 0 rgba(123, 94, 167, 0.1);
+
+  --cocoro-purple: #7B5EA7;
+  --cocoro-purple-light: #F0EBF8;
+  --cocoro-cream: #FDFCF9;
+  --cocoro-cream-dark: #F0EDE6;
+  --cocoro-text: #2D2D2D;
+  --cocoro-text-light: #6B6B6B;
+  --cocoro-border: rgba(123, 94, 167, 0.15);
+  --cocoro-shadow: 0 4px 24px rgba(123, 94, 167, 0.08);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #B59FD8;
+  --ifm-color-primary-dark: #9B7EC7;
+  --ifm-color-primary-darker: #8B6EB7;
+  --ifm-color-primary-darkest: #7B5EA7;
+  --ifm-color-primary-light: #C7B5E3;
+  --ifm-color-primary-lighter: #D4C5EC;
+  --ifm-color-primary-lightest: #E5DAF5;
+
+  --ifm-background-color: #1A1625;
+  --ifm-background-surface-color: #231E33;
+
+  --cocoro-purple-light: #2D2545;
+  --cocoro-cream: #1A1625;
+  --cocoro-cream-dark: #231E33;
+  --cocoro-border: rgba(181, 159, 216, 0.15);
+  --cocoro-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* === Google Fonts 読み込み === */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+/* === ナビゲーション === */
+.navbar {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.navbar__brand {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.navbar__logo {
+  height: 28px;
+  margin-right: 8px;
+}
+
+/* === ヒーローセクション === */
+.hero {
+  background: linear-gradient(135deg, #F0EBF8 0%, #FDFCF9 50%, #EBF0F8 100%);
+  padding: 5rem 0 4rem;
+}
+
+[data-theme='dark'] .hero {
+  background: linear-gradient(135deg, #1A1625 0%, #231E33 50%, #1A2230 100%);
+}
+
+.hero__title {
+  font-size: 3.2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #7B5EA7, #5E4385);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme='dark'] .hero__title {
+  background: linear-gradient(135deg, #C7B5E3, #9B7EC7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero__subtitle {
+  font-size: 1.25rem;
+  color: var(--cocoro-text-light);
+  font-weight: 400;
+  margin-top: 0.5rem;
+}
+
+/* === ボタン === */
+.button--primary {
+  background: linear-gradient(135deg, #7B5EA7, #5E4385);
+  border: none;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 12px rgba(123, 94, 167, 0.3);
+}
+
+.button--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(123, 94, 167, 0.4);
+  background: linear-gradient(135deg, #8B6EB7, #6B4E97);
+}
+
+.button--secondary {
+  border-color: var(--cocoro-purple);
+  color: var(--cocoro-purple);
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.button--secondary:hover {
+  background: var(--cocoro-purple-light);
+  transform: translateY(-1px);
+}
+
+/* === フィーチャーカード === */
+.features {
+  padding: 4rem 0;
+  background: var(--ifm-background-surface-color);
+}
+
+.feature-card {
+  background: var(--ifm-background-color);
+  border: 1px solid var(--cocoro-border);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: var(--cocoro-shadow);
+  transition: all 0.3s ease;
+  height: 100%;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 40px rgba(123, 94, 167, 0.15);
+  border-color: rgba(123, 94, 167, 0.3);
+}
+
+.feature-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.feature-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--cocoro-purple);
+  margin-bottom: 0.5rem;
+}
+
+/* === コードブロック === */
+.theme-code-block {
+  border-radius: 12px;
+  box-shadow: var(--cocoro-shadow);
+}
+
+code {
+  background: var(--cocoro-purple-light);
+  color: var(--cocoro-purple);
+  border-radius: 4px;
+  font-family: var(--ifm-font-family-monospace);
+}
+
+/* === サイドバー === */
+.menu__link--active {
+  background: var(--cocoro-purple-light);
+  color: var(--cocoro-purple);
+  font-weight: 600;
+}
+
+.menu__link:hover {
+  background: var(--cocoro-purple-light);
+  color: var(--cocoro-purple);
+}
+
+/* === ドキュメントコンテンツ === */
+.markdown h1 {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  border-bottom: 2px solid var(--cocoro-purple-light);
+  padding-bottom: 0.5rem;
+}
+
+.markdown h2 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-top: 2.5rem;
+}
+
+.markdown h3 {
+  font-weight: 600;
+  color: var(--cocoro-purple);
+}
+
+/* === テーブル === */
+.markdown table {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--cocoro-shadow);
+}
+
+.markdown thead tr {
+  background: var(--cocoro-purple-light);
+}
+
+.markdown thead th {
+  color: var(--cocoro-purple);
+  font-weight: 700;
+  border-bottom: 2px solid var(--cocoro-border);
+}
+
+.markdown tbody tr:hover {
+  background: var(--cocoro-purple-light);
+}
+
+/* === admonition（注意書き）=== */
+.alert--info {
+  border-left-color: var(--cocoro-purple);
+  background: var(--cocoro-purple-light);
+}
+
+/* === フッター === */
+.footer {
+  background: linear-gradient(135deg, #1A1220, #231E33);
+}
+
+.footer__title {
+  color: #B59FD8;
+  font-weight: 700;
+}
+
+/* === アーキテクチャ図 === */
+.arch-layer {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  margin: 4px 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.arch-layer:hover {
+  transform: translateX(4px);
+  box-shadow: 0 2px 12px rgba(123, 94, 167, 0.15);
+}
+
+.arch-layer-number {
+  font-size: 0.75rem;
+  font-weight: 700;
+  opacity: 0.6;
+  margin-right: 0.75rem;
+  min-width: 48px;
+}
+
+/* レイヤー別カラー */
+.layer-ui     { background: linear-gradient(135deg, #F3E8FF, #EDE0FF); border-left: 4px solid #9B59B6; }
+.layer-api    { background: linear-gradient(135deg, #E8F0FF, #DCE8FF); border-left: 4px solid #5B76C8; }
+.layer-security { background: linear-gradient(135deg, #FFF0E8, #FFE8DC); border-left: 4px solid #E07040; }
+.layer-gov    { background: linear-gradient(135deg, #FFF8E8, #FFF0D8); border-left: 4px solid #D4A030; }
+.layer-org    { background: linear-gradient(135deg, #E8FFF0, #D8FFE8); border-left: 4px solid #40B870; }
+.layer-agent  { background: linear-gradient(135deg, #E8F8FF, #D8F0FF); border-left: 4px solid #3098C8; }
+.layer-brain  { background: linear-gradient(135deg, #F0E8FF, #E8D8FF); border-left: 4px solid #7B5EA7; }
+.layer-evo    { background: linear-gradient(135deg, #F8F0FF, #F0E8FF); border-left: 4px solid #9B6EB7; }
+.layer-persona { background: linear-gradient(135deg, #FFE8F8, #FFD8F0); border-left: 4px solid #C85898; }
+.layer-memory { background: linear-gradient(135deg, #E8FFFC, #D8FFF8); border-left: 4px solid #30B8A8; }
+.layer-infra  { background: linear-gradient(135deg, #EEEEE8, #E4E4DC); border-left: 4px solid #808070; }
+.layer-os     { background: linear-gradient(135deg, #E8E8E8, #DCDCDC); border-left: 4px solid #606060; }
+.layer-hw     { background: linear-gradient(135deg, #E0E0E0, #D4D4D4); border-left: 4px solid #404040; }
+
+[data-theme='dark'] .layer-ui     { background: linear-gradient(135deg, #3D2560, #321F52); border-left: 4px solid #9B59B6; color: #E0C8FF; }
+[data-theme='dark'] .layer-api    { background: linear-gradient(135deg, #1E2E52, #192848); border-left: 4px solid #5B76C8; color: #C8D8FF; }
+[data-theme='dark'] .layer-security { background: linear-gradient(135deg, #52281E, #481E16); border-left: 4px solid #E07040; color: #FFD0B0; }
+[data-theme='dark'] .layer-gov    { background: linear-gradient(135deg, #52401E, #483818); border-left: 4px solid #D4A030; color: #FFE0A0; }
+[data-theme='dark'] .layer-org    { background: linear-gradient(135deg, #1C3C28, #183322); border-left: 4px solid #40B870; color: #A0EFB8; }
+[data-theme='dark'] .layer-agent  { background: linear-gradient(135deg, #1C3048, #182840); border-left: 4px solid #3098C8; color: #A0D8F0; }
+[data-theme='dark'] .layer-brain  { background: linear-gradient(135deg, #2D2048, #261B3F); border-left: 4px solid #7B5EA7; color: #C8B0F0; }
+[data-theme='dark'] .layer-evo    { background: linear-gradient(135deg, #2A1C40, #231538); border-left: 4px solid #9B6EB7; color: #D0B8E8; }
+[data-theme='dark'] .layer-persona { background: linear-gradient(135deg, #401C38, #381430); border-left: 4px solid #C85898; color: #FFB0D8; }
+[data-theme='dark'] .layer-memory { background: linear-gradient(135deg, #1C4038, #183530); border-left: 4px solid #30B8A8; color: #A0F0E0; }
+[data-theme='dark'] .layer-infra  { background: linear-gradient(135deg, #2C2C28, #242422); border-left: 4px solid #808070; color: #C8C8B8; }
+[data-theme='dark'] .layer-os     { background: linear-gradient(135deg, #262626, #202020); border-left: 4px solid #606060; color: #B8B8B8; }
+[data-theme='dark'] .layer-hw     { background: linear-gradient(135deg, #202020, #1A1A1A); border-left: 4px solid #404040; color: #A8A8A8; }
+
+/* === バッジ === */
+.badge-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--cocoro-purple-light);
+  color: var(--cocoro-purple);
+  margin: 2px;
+}
+
+/* === スクロールバー === */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(123, 94, 167, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(123, 94, 167, 0.5);
+}

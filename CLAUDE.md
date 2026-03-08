@@ -26,6 +26,7 @@ miniPC（Intel N95 / Debian 13）上でAI Agentをローカル常時稼働させ
 | `cocoro-console` | miniPCのローカル管理UI（LAN内専用）。ChatGPTライクなSSEストリーミングチャット・メモリブラウザ・エージェント管理・ノード監視 | Next.js 16 / TypeScript |
 | `cocoro-website` | インターネット公開向けSNS×AIプラットフォーム。AIエージェントによるソーシャルフィード・コミュニティ・チャット | Next.js 16 / TypeScript |
 | `cocoro-installer` | 工場キッティング用Debian 13自動インストールUSB。miniPC向けゼロタッチOSセットアップ + cocoro-coreデプロイ | Shell |
+| `cocoro-docs` | 公式ドキュメントサイト（Docusaurus 3）。GitHub Pagesでホスト | TypeScript / MDX |
 
 ### � 未開発repo（将来実装予定）
 
@@ -39,7 +40,6 @@ miniPC（Intel N95 / Debian 13）上でAI Agentをローカル常時稼働させ
 | `cocoro-network` | ネットワーク接続・通信プロトコル |
 | `cocoro-node` | ノード管理・クラスタ通信 |
 | `cocoro-cloud` | クラウド連携・リモート同期 |
-| `cocoro-docs` | ドキュメントサイト |
 | `cocoro-examples` | サンプルコード・チュートリアル |
 
 ---
@@ -322,6 +322,31 @@ cat /etc/cocoro-release
 
 ---
 
+## cocoro-docs 開発コマンド
+
+```bash
+# セットアップ
+npm install
+
+# ローカルプレビュー → http://localhost:3001
+npm run start
+
+# 本番ビルド（静的ファイル生成）
+npm run build
+
+# GitHub Pages へデプロイ（mainブランチpushで自動実行）
+npm run deploy
+```
+
+### 重要
+- **ポート 3001** を使用（cocoro-console / cocoro-website の 3000 と競合しない）
+- `docs/` 配下の `.md` / `.mdx` ファイルを編集してコンテンツを追加
+- APIリファレンスは cocoro-core の openapi.json から自動生成予定（Phase 2）
+- GitHub Actions（`.github/workflows/deploy.yml`）で mainブランチpush → 自動デプロイ
+- 公開 URL: `https://mdl-systems.github.io/cocoro-docs/`
+
+---
+
 ## Antigravityワークスペース構成（推奨）
 
 ```
@@ -329,6 +354,7 @@ cat /etc/cocoro-release
 インスタンスB: cocoro-console     （ローカル管理UI開発）
 インスタンスC: cocoro-website     （SNSプラットフォーム開発）
 インスタンスD: cocoro-installer   （デプロイ・キッティング）
+インスタンスE: cocoro-docs        （ドキュメントサイト管理）
 ```
 
 > 新repoが追加されたらインスタンスを追加し、このCLAUDE.mdを更新してください。
@@ -342,3 +368,4 @@ cat /etc/cocoro-release
 | 2026-03-08 | 初版作成（repo名・説明文から推定） |
 | 2026-03-08 | cocoro-installer / cocoro-core / cocoro-console / cocoro-website README反映 |
 | 2026-03-08 | 未開発repoを整理・最終版に統合 |
+| 2026-03-08 | cocoro-docs（Docusaurus 3）を開発済みrepoとして追加。docs開発コマンドセクション追加 |
