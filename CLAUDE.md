@@ -8,129 +8,330 @@
 ## プロジェクト概要
 
 **Cocoro OS** は、人間の思考・判断・個性を模倣するパーソナルAI意識OSです。
-miniPC（主にDebian環境）上で動作し、AI Agentをローカルで常時稼働させることを目的としています。
+miniPC（Intel N95 / Debian 13）上でAI Agentをローカル常時稼働させることを目的としています。
 
 - **組織**: mdl-systems
 - **ライセンス**: Apache License 2.0（全repo共通）
-- **主要言語**: Python / Shell / HTML
+- **主要言語**: Python 3.11 / TypeScript / Shell
 
 ---
 
 ## リポジトリ構成と役割
 
-### 🧠 コア・基盤層
+### ✅ 開発済みrepo
 
 | Repo | 役割 | 言語 |
 |------|------|------|
-| `cocoro-core` | AI意識OSのコアエンジン。思考・判断・個性のレプリケーション | Python |
-| `cocoro-models` | AIモデル定義・管理（LLM/エージェントモデル） | 未確認 |
-| `cocoro-agent` | エージェント実装・行動ループ・タスク実行 | 未確認 |
+| `cocoro-core` | Personality AI OSのコアエンジン。Memory+Values+Emotion+Decision Graphで人格の一貫性を保証。53modules / 131 endpoints / 231 tests | Python 3.11 |
+| `cocoro-console` | miniPCのローカル管理UI（LAN内専用）。ChatGPTライクなSSEストリーミングチャット・メモリブラウザ・エージェント管理・ノード監視 | Next.js 16 / TypeScript |
+| `cocoro-website` | インターネット公開向けSNS×AIプラットフォーム。AIエージェントによるソーシャルフィード・コミュニティ・チャット | Next.js 16 / TypeScript |
+| `cocoro-installer` | 工場キッティング用Debian 13自動インストールUSB。miniPC向けゼロタッチOSセットアップ + cocoro-coreデプロイ | Shell |
 
-### 🌐 ネットワーク・インフラ層
+### � 未開発repo（将来実装予定）
 
-| Repo | 役割 | 言語 |
-|------|------|------|
-| `cocoro-node` | ノード管理・P2Pまたはクラスタ通信 | 未確認 |
-| `cocoro-network` | ネットワーク接続・通信プロトコル | 未確認 |
-| `cocoro-cloud` | クラウド連携・リモート同期 | 未確認 |
-| `cocoro-installer` | miniPC向けDebian自動セットアップ + cocoro-coreデプロイ | Shell |
-
-### 🛠 開発者向けツール層
-
-| Repo | 役割 | 言語 |
-|------|------|------|
-| `cocoro-sdk` | 外部開発者向けSDK（APIラッパー） | 未確認 |
-| `cocoro-cli` | コマンドラインインターフェース | 未確認 |
-| `cocoro-apps` | cocoro上で動くアプリケーション群 | 未確認 |
-
-### 📚 ドキュメント・UI層
-
-| Repo | 役割 | 言語 |
-|------|------|------|
-| `cocoro-console` | 管理コンソール・Web UI | 未確認 |
-| `cocoro-docs` | ドキュメントサイト | 未確認 |
-| `cocoro-examples` | サンプルコード・チュートリアル | 未確認 |
-| `cocoro-website` | 公式Webサイト（AI Agent登録フォーム） | HTML |
+| Repo | 想定役割 |
+|------|---------|
+| `cocoro-sdk` | 外部開発者向けSDK（cocoro-core APIラッパー） |
+| `cocoro-cli` | コマンドラインインターフェース |
+| `cocoro-apps` | cocoro上で動くアプリケーション群 |
+| `cocoro-agent` | エージェント実装・行動ループ拡張 |
+| `cocoro-models` | AIモデル定義・管理 |
+| `cocoro-network` | ネットワーク接続・通信プロトコル |
+| `cocoro-node` | ノード管理・クラスタ通信 |
+| `cocoro-cloud` | クラウド連携・リモート同期 |
+| `cocoro-docs` | ドキュメントサイト |
+| `cocoro-examples` | サンプルコード・チュートリアル |
 
 ---
 
-## 依存関係マップ（推定）
+## 依存関係マップ
 
 ```
-cocoro-website
-    │
-    ▼
-cocoro-console ──────────────────────────────────┐
-    │                                             │
-    ▼                                             ▼
-cocoro-sdk ──────────────► cocoro-core ◄──── cocoro-agent
-    │                           │                 │
-    ▼                           ▼                 ▼
-cocoro-cli              cocoro-models       cocoro-network
-                               │                 │
-                               ▼                 ▼
-                        cocoro-cloud        cocoro-node
-                               
-cocoro-installer ──► cocoro-core（デプロイ対象）
-cocoro-apps ────────► cocoro-sdk（アプリがSDK経由で利用）
-cocoro-examples ────► cocoro-sdk / cocoro-cli
-cocoro-docs ────────► 全repoのドキュメント集約
+[ インターネット ]
+cocoro-website (Next.js:3000)
+  OpenAI API + cocoro-core連携
+  PostgreSQL + Prisma / JWT / NextAuth.js
+        │
+        └──── HTTP ──────────────────────┐
+                                         ▼
+[ LAN内 ]                        cocoro-core (FastAPI:8001)
+cocoro-console (Next.js:3000)           │
+  SQLite / AES-256-GCM / Ed25519 ┌──────┴──────────────┐
+        │                        ▼                     ▼
+        └─── SSE/HTTP/JWT ──► PostgreSQL+pgvector     Redis
+                             (memory/personality)  (cache/queue)
+
+[ デプロイ ]
+cocoro-installer (Shell/USB)
+  → Debian 13 自動インストール
+  → Docker CE セットアップ
+  → cocoro-core を /opt/cocoro/core にデプロイ
 ```
 
 ---
 
-## アーキテクチャの原則（推定）
+## システムアーキテクチャ（cocoro-core 11層構造）
 
-1. **ローカルファースト**: miniPC上でAIが自律動作することを前提
-2. **モジュール分離**: 各機能が独立したrepoとして分割されている
-3. **SDK経由のアクセス**: 外部・アプリからはcocoro-sdk経由でcoreにアクセス
-4. **自動インストール**: cocoro-installerでセットアップをゼロ設定化
+```
+Layer 11: Dashboard & Voice        (Web UI / Web Speech API)
+Layer 10: API Gateway              (FastAPI + Nginx, 131 endpoints)
+Layer 9.5: Security                (Rate Limit / IP Filter / HTTPS)
+Layer 9:  Governance               (Ethics + Safety + Value Scoring)
+Layer 8:  Organization             (Departments + Agent Registry)
+Layer 7:  Agent Execution          (Task Router + Worker + Queue)
+Layer 6:  AI Brain                 (Reasoning + Decision + Tools×10)
+Layer 5:  Evolution                (Observation + Evaluation + Meta)
+Layer 4:  Personality              (Identity + Values + Emotion×6)
+Layer 3:  Memory                   (Short-Term:Redis / Long-Term:PG / Vector:pgvector)
+Layer 2:  Infrastructure           (PostgreSQL + Redis + Docker)
+Layer 1:  OS                       (Debian 13)
+Layer 0:  Hardware                 (miniPC: N95 / 16GB / 512GB SSD)
+```
+
+### アーキテクチャの原則
+
+1. **LLMは「声帯」**: LLMが変わっても人格 (Memory/Values/Emotion/Decision) は維持される
+2. **ローカルファースト**: miniPC上でAIが自律動作。Ollamaでオフライン運用も可能
+3. **2フロントエンド構成**: cocoro-console（LAN内管理）/ cocoro-website（公開SNS）
+4. **ゼロタッチデプロイ**: cocoro-installerでUSBから全自動セットアップ
 
 ---
 
 ## 開発時の注意事項
 
-### ✅ 実装前に確認すること
-- 変更が `cocoro-core` に影響する場合、`cocoro-sdk` のインターフェースへの影響を必ず確認
-- `cocoro-installer` はDebian/Shell依存のため、他OS環境でのテスト不可
-- `cocoro-models` を変更する場合、`cocoro-agent` と `cocoro-core` との互換性を確認
-
-### ⚠️ 未確認情報について
-> このCLAUDE.mdはrepo名と説明文から推定して作成されています。
-> 各repoのREADMEやコードを読んだ後、以下のセクションを実際の情報で更新してください：
-> - 各repoの実際の技術スタック
-> - API境界・インターフェース定義
-> - 環境変数・設定ファイルの場所
-> - テスト・ビルド・デプロイコマンド
+- `cocoro-core` のAPI変更は `cocoro-console` / `cocoro-website` 両方への影響を確認
+- Decision Graph のパイプライン順序を守る: **Memory → Value → Emotion → Decision**
+- シンクロ率 92% 超え（Divergence Ceiling）で学習停止するため注意
+- `cocoro-console` と `cocoro-website` は**ポート3000が競合**するため同時起動時は要注意
+- `cocoro-installer` はDebian/Shell依存のため他OS環境でのテスト不可
+- LLMプロバイダーは `LLM_PROVIDER=gemini` or `ollama` で切り替え可能
 
 ---
 
-## よく使うコマンド（確認後に記入）
+## cocoro-core 詳細
 
+### テックスタック
+| Component | Technology | Version |
+|-----------|-----------|---------|
+| Language | Python | 3.11 |
+| API Framework | FastAPI | 0.109 |
+| LLM (Cloud) | Google Gemini | 2.5 Flash |
+| LLM (Local) | Ollama | - |
+| Database | PostgreSQL + pgvector | 16 |
+| Cache / Queue | Redis | 7 |
+| Container | Docker Compose + Nginx | - |
+| Test | pytest + pytest-asyncio | 231 tests (9 files) |
+
+### 環境変数
 ```bash
-# cocoro-core 起動
-# TODO: 実際のコマンドに更新
-
-# cocoro-installer 実行
-# TODO: Shellスクリプト名を確認して記入
-
-# テスト実行
-# TODO: 各repoのテストコマンドを記入
+# 設定ファイル: infra/docker/.env（.env.example からコピー）
+LLM_PROVIDER=gemini           # or ollama
+GEMINI_API_KEY=<key>          # 必須（Gemini使用時）
+GEMINI_MODEL=gemini-2.0-flash
+COCORO_API_KEY=<key>          # API認証キー（必須）
+POSTGRES_PASSWORD=cocoro_secret
+JWT_SECRET=<secret>           # 空=API Key認証
+FORCE_HTTPS=false             # 本番はtrue
+RATE_LIMIT_ENABLED=true
 ```
+
+### よく使うコマンド
+```bash
+# 起動
+cd infra/docker && docker compose up -d --build
+
+# ヘルスチェック
+curl http://localhost:8001/health
+
+# 会話テスト
+curl -X POST http://localhost:8001/chat \
+  -H "Authorization: Bearer <COCORO_API_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "こんにちは、自己紹介して"}'
+
+# ダッシュボード
+open http://localhost:8001/dashboard
+
+# テスト（全件）
+docker exec cocoro-core python -m pytest tests/ -v --tb=short
+
+# テスト（カテゴリ別）
+docker exec cocoro-core python -m pytest tests/test_e2e.py -v        # E2E (99)
+docker exec cocoro-core python -m pytest tests/test_emotion.py -v    # Emotion (28)
+docker exec cocoro-core python -m pytest tests/test_security.py -v   # Security (19)
+docker exec cocoro-core python -m pytest tests/test_next_gen.py -v   # C-2〜C-8 (42)
+```
+
+### Function Calling ツール（10種）
+`search_memory` / `create_task` / `get_org_status` / `search_learnings` /
+`get_personality` / `get_current_time` / `web_search` / `add_schedule` /
+`list_schedules` / `list_recent_tasks` + Plugins (math/time/format/random)
+
+### ディレクトリ構成
+```
+cocoro-core/
+├── api/           # FastAPI サーバー(131 endpoints) + セキュリティ + ダッシュボード
+├── brain/         # LLM統合 / 思考エンジン / 判断エンジン / 計画 / ツール
+├── personality/   # 人格エンジン(6要素) / 感情 / 成長 / クローン / 音声
+├── memory/        # 短期(Redis) / 長期(PostgreSQL) / ベクトル(pgvector) / アーカイバ
+├── evolution/     # 自己進化モジュール群
+├── governance/    # 倫理チェック + ルール管理
+├── agent/         # タスクルーター + ワーカー + 組織管理
+├── infra/docker/  # Dockerfile / docker-compose.yml / nginx.conf / .env
+├── tests/         # 231テスト (9ファイル)
+└── docs/ARCHITECTURE.md
+```
+
+---
+
+## cocoro-console 詳細
+
+### テックスタック
+| レイヤー | 技術 |
+|---------|------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript |
+| Style | Vanilla CSS（クリームテーマ）|
+| Animation | Framer Motion |
+| Markdown | react-markdown + remark-gfm |
+| Database | SQLite (better-sqlite3) |
+| Security | AES-256-GCM / Scrypt / Ed25519 / CSRF / Rate Limiting |
+
+### 環境変数
+```bash
+# 設定ファイル: .env.local（.env.local.example からコピー）
+COCORO_CORE_URL=http://192.168.50.92:8001
+COCORO_CORE_API_KEY=<your-api-key>
+COCORO_CORE_ENABLED=false   # false=モックモード（オフライン開発用）
+```
+
+### よく使うコマンド
+```bash
+npm install
+npm run dev        # → http://localhost:3000
+# 本番接続時は COCORO_CORE_ENABLED=true に変更して再起動
+```
+
+### cocoro-core 接続フロー
+```
+チャット入力
+  → POST /api/chat/stream (SSE)
+  → cocoro-core /auth/token (JWT取得・1時間キャッシュ)
+  → cocoro-core /chat
+  → SSE word-by-word streaming → ブラウザ
+```
+
+### 残タスク (P3)
+- PIN/パスコード認証・Dockerコンテナ化
+- E2Eテスト (Playwright) / ユニットテスト (Vitest) / CI/CD
+
+---
+
+## cocoro-website 詳細
+
+### テックスタック
+| レイヤー | 技術 |
+|---------|------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript 5 |
+| Style | Tailwind CSS 4 |
+| AI | OpenAI API（チャット・ストリーミング）|
+| Database | PostgreSQL + Prisma |
+| 認証 | JWT / NextAuth.js |
+
+### cocoro-consoleとの違い
+| | cocoro-console | cocoro-website |
+|--|---------------|----------------|
+| 用途 | ローカル管理UI | 公開SNS×AIプラットフォーム |
+| ネットワーク | LAN内専用 | インターネット公開 |
+| DB | SQLite | PostgreSQL + Prisma |
+| 認証 | Ed25519デバイス認証 | JWT / NextAuth.js |
+| AI連携 | cocoro-core直接 | OpenAI API + cocoro-core |
+
+### 環境変数
+```bash
+# 設定ファイル: .env.local（.env.example からコピー）
+OPENAI_API_KEY=<key>
+DATABASE_URL=postgresql://...
+JWT_SECRET=<secret>
+NEXTAUTH_SECRET=<secret>
+NEXTAUTH_URL=http://localhost:3000
+NEXT_PUBLIC_APP_NAME=COCORO
+NEXT_PUBLIC_APP_URL=https://...
+```
+
+### よく使うコマンド
+```bash
+npm install
+cp .env.example .env.local
+npm run dev     # → http://localhost:3000
+npm run build
+npm start
+npm run lint
+```
+
+---
+
+## cocoro-installer 詳細
+
+### インストールフロー
+```
+USB ブート → GRUB 自動選択(3秒) → Debian 無人インストール
+  → 再起動 → Docker + cocoro-core セットアップ → 完了（約20秒）
+```
+
+### 対象ハードウェア・ログイン情報
+| 項目 | 値 |
+|------|----|
+| CPU | Intel N95 / RAM 8〜16GB / SSD 512GB NVMe |
+| ホスト名 | `cocoro` / mDNS: `cocoro.local` |
+| ユーザー | `cocoro-admin` / PW: `cocoro-factory-2026` |
+| SSH | `ssh cocoro-admin@cocoro.local` |
+
+### パーティション構成
+| マウントポイント | サイズ | 用途 |
+|----------------|--------|------|
+| `/boot/efi` | 512MB | EFI |
+| `/` | 50GB | ルートFS |
+| `/var/lib/docker` | 100GB | Dockerイメージ |
+| swap | 4GB | スワップ |
+| `/data/cocoro` | 残り全部 | PostgreSQL / Redis 永続データ |
+
+### よく使うコマンド
+```bash
+# ISO ビルド（WSL/Ubuntu）
+sudo apt-get install -y xorriso isolinux rsync
+./usb/build-iso.sh
+# → output/cocoro-os-installer.iso
+
+# USB に直接配置
+./usb/deploy-to-usb.sh /mnt/d
+
+# 検品確認（インストール後）
+ssh cocoro-admin@cocoro.local
+docker --version && systemctl status docker && df -h
+cat /etc/cocoro-release
+```
+
+### 工場キッティング手順
+1. `build-iso.sh` でISO生成
+2. Rufus（GPT / UEFI / ISOイメージモード）でUSBに書き込み
+3. miniPCにUSB挿入 → 電源ON → 自動完了（操作不要）
+4. firstbootが約20秒でDockerをセットアップ
+5. USBを抜いて梱包
 
 ---
 
 ## Antigravityワークスペース構成（推奨）
 
 ```
-インスタンスA: cocoro-core + cocoro-models + cocoro-agent  （コア層）
-インスタンスB: cocoro-sdk + cocoro-cli + cocoro-apps       （ツール層）
-インスタンスC: cocoro-network + cocoro-node + cocoro-cloud （インフラ層）
-インスタンスD: cocoro-installer + cocoro-console           （運用・UI層）
+インスタンスA: cocoro-core        （コアエンジン開発）
+インスタンスB: cocoro-console     （ローカル管理UI開発）
+インスタンスC: cocoro-website     （SNSプラットフォーム開発）
+インスタンスD: cocoro-installer   （デプロイ・キッティング）
 ```
 
-グローバルSkills（`~/.gemini/antigravity/skills/`）にこのファイルの要約を置くことで
-全インスタンスからプロジェクト全体像を参照できます。
+> 新repoが追加されたらインスタンスを追加し、このCLAUDE.mdを更新してください。
 
 ---
 
@@ -138,5 +339,6 @@ cocoro-docs ────────► 全repoのドキュメント集約
 
 | 日付 | 更新内容 |
 |------|---------|
-| 2026-03-08 | 初版作成（repo名・説明文からの推定版） |
-| （次回）  | 各repoのREADME確認後に実情報で更新 |
+| 2026-03-08 | 初版作成（repo名・説明文から推定） |
+| 2026-03-08 | cocoro-installer / cocoro-core / cocoro-console / cocoro-website README反映 |
+| 2026-03-08 | 未開発repoを整理・最終版に統合 |
