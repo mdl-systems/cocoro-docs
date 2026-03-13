@@ -2,29 +2,79 @@ import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 
 const sidebars: SidebarsConfig = {
     tutorialSidebar: [
-        {
-            type: 'doc',
-            id: 'intro',
-            label: '🏠 Cocoro OS とは',
-        },
-        {
-            type: 'doc',
-            id: 'architecture',
-            label: '📐 アーキテクチャ',
-        },
+        'intro',
+
+        // Getting Started
         {
             type: 'category',
             label: '🚀 はじめる',
             collapsed: false,
             items: [
+                'getting-started/hardware',
                 'getting-started/quickstart',
                 'getting-started/installation',
+                'getting-started/boot-wizard',
+                'getting-started/first-chat',
                 'getting-started/configuration',
             ],
         },
+
+        // Architecture
         {
             type: 'category',
-            label: '📦 SDK リファレンス',
+            label: '📐 アーキテクチャ',
+            items: [
+                'architecture',
+                'architecture/core-internals',
+                'architecture/agent-system',
+                'architecture/node-network',
+            ],
+        },
+
+        // API Reference
+        {
+            type: 'category',
+            label: '📡 API リファレンス',
+            items: [
+                'api/overview',
+                'api/chat',
+                'api/personality',
+                'api/memory',
+                'api/agent',
+            ],
+        },
+
+        // Guides
+        {
+            type: 'category',
+            label: '📖 ガイド',
+            items: [
+                'guides/specialist-agents',
+                'guides/multi-node',
+                'guides/custom-agent',
+                'guides/cloudflare-tunnel',
+                'guides/nextjs-integration',
+                'guides/personality-setup',
+                'guides/factory-kitting',
+            ],
+        },
+
+        // Concepts
+        {
+            type: 'category',
+            label: '💡 コンセプト',
+            items: [
+                'concepts/personality-engine',
+                'concepts/memory-system',
+                'concepts/decision-graph',
+                'concepts/sync-rate',
+            ],
+        },
+
+        // SDK
+        {
+            type: 'category',
+            label: '🛠️ SDK',
             items: [
                 'sdk/overview',
                 'sdk/quickstart',
@@ -34,23 +84,13 @@ const sidebars: SidebarsConfig = {
                 'sdk/agent',
             ],
         },
+
+        // Troubleshooting
         {
             type: 'category',
-            label: '📖 ガイド',
+            label: '🔧 トラブルシューティング',
             items: [
-                'guides/nextjs-integration',
-                'guides/personality-setup',
-                'guides/factory-kitting',
-            ],
-        },
-        {
-            type: 'category',
-            label: '🧠 コンセプト',
-            items: [
-                'concepts/personality-engine',
-                'concepts/memory-system',
-                'concepts/decision-graph',
-                'concepts/sync-rate',
+                'troubleshooting/index',
             ],
         },
     ],
