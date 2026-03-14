@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkcocoro_docs=globalThis.webpackChunkcocoro_docs||[]).push([[6235],{6235(c,o,s){s.d(o,{createInfoServices:()=>e.v});var e=s(1009);s(6902)}}]);
