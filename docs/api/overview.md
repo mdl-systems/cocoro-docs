@@ -1,21 +1,58 @@
 ---
 title: API リファレンス概要
 sidebar_position: 1
-description: Cocoro OS (cocoro-core) の REST API リファレンス。認証方法・エンドポイント一覧・共通仕様を解説。
+description: Cocoro OS (cocoro-core) の REST API リファレンス。Swagger UI へのアクセス方法・認証・全エンドポイント一覧を解説。
 ---
 
 # 📡 API リファレンス
 
 **cocoro-core** は FastAPI ベースの REST API を提供します。
-131 エンドポイントを持ち、すべての操作をプログラムから実行できます。
+**131 エンドポイント**を持ち、すべての操作をプログラムから実行できます。
+
+---
+
+## 🔗 インタラクティブ API ドキュメント（Swagger UI）
+
+cocoro-core を起動した状態で、以下の URL にアクセスすると **Swagger UI** が使えます。
+
+:::info Swagger UI でAPIを試す
+miniPC の IP アドレスに合わせて URL を書き換えてください。
+:::
+
+| ツール | URL | 説明 |
+|--------|-----|------|
+| **Swagger UI** | `http://YOUR_MINIPC_IP:8001/docs` | インタラクティブに API をテスト可能 |
+| **ReDoc** | `http://YOUR_MINIPC_IP:8001/redoc` | 読みやすいリファレンス形式 |
+| **OpenAPI JSON** | `http://YOUR_MINIPC_IP:8001/openapi.json` | スキーマファイル（SDK生成等に利用）|
+
+**YOUR_MINIPC_IP の確認方法:**
+```bash
+# miniPC に SSH 接続後
+hostname -I | awk '{print $1}'
+# → 192.168.1.100 など
+```
+
+よく使う組み合わせ：
+```
+http://cocoro.local:8001/docs    # mDNS が使える環境
+http://192.168.1.100:8001/docs   # IP アドレス直接
+```
+
+### Swagger UI の使い方
+
+1. 上記 URL にブラウザでアクセス
+2. 右上「Authorize 🔒」をクリック
+3. `Bearer YOUR_COCORO_API_KEY` を入力して「Authorize」
+4. 各エンドポイントを展開 → 「Try it out」→「Execute」でテスト可能
 
 ---
 
 ## ベース URL
 
-```
-http://cocoro.local:8001    # mDNS 経由（推奨）
-http://192.168.x.xxx:8001   # IP アドレス直接
+```bash
+http://cocoro.local:8001          # mDNS 経由（推奨）
+http://192.168.x.xxx:8001         # IP アドレス直接
+https://your-domain.com:8001      # Cloudflare Tunnel 経由（外部アクセス）
 ```
 
 ---
@@ -25,11 +62,11 @@ http://192.168.x.xxx:8001   # IP アドレス直接
 すべてのエンドポイントは **Bearer Token 認証** が必要です。
 
 ```bash
-# API キーをそのまま使用
+# API キーをそのまま Bearer として使用
 curl http://cocoro.local:8001/health \
   -H "Authorization: Bearer YOUR_COCORO_API_KEY"
 
-# または JWT トークンを取得して使用
+# JWT トークンを取得して使用（有効期間: 1時間）
 curl -X POST http://cocoro.local:8001/auth/token \
   -H "Content-Type: application/json" \
   -d '{"api_key": "YOUR_COCORO_API_KEY"}'
@@ -39,7 +76,7 @@ curl -X POST http://cocoro.local:8001/auth/token \
 :::tip COCORO_API_KEY の確認方法
 ```bash
 ssh cocoro-admin@cocoro.local
-cat /opt/cocoro/core/infra/docker/.env | grep COCORO_API_KEY
+grep COCORO_API_KEY /opt/cocoro/core/infra/docker/.env
 ```
 :::
 
@@ -51,8 +88,10 @@ cat /opt/cocoro/core/infra/docker/.env | grep COCORO_API_KEY
 
 | メソッド | パス | 説明 |
 |---------|------|------|
-| POST | `/chat` | 通常チャット（同期）|
+| POST | `/chat` | 通常チャット（同期・JSON）|
 | POST | `/chat/stream` | SSE ストリーミングチャット |
+
+→ 詳細: [POST /chat/stream](./chat)
 
 ### 感情
 
@@ -62,6 +101,8 @@ cat /opt/cocoro/core/infra/docker/.env | grep COCORO_API_KEY
 | POST | `/emotion/update` | 感情を手動更新 |
 | GET | `/emotion/history` | 感情履歴を取得 |
 
+→ 詳細: [GET /emotion/state](./emotion)
+
 ### シンクロ率
 
 | メソッド | パス | 説明 |
@@ -69,6 +110,9 @@ cat /opt/cocoro/core/infra/docker/.env | grep COCORO_API_KEY
 | GET | `/sync/rate` | 現在のシンクロ率 |
 | GET | `/sync/history` | シンクロ率の推移 |
 | GET | `/sync/ceiling` | Divergence Ceiling 状態 |
+| POST | `/sync/reset` | シンクロ率をリセット |
+
+→ 詳細: [GET /sync/rate](./sync)
 
 ### 記憶
 
@@ -82,15 +126,20 @@ cat /opt/cocoro/core/infra/docker/.env | grep COCORO_API_KEY
 | GET | `/memory/learnings` | 学習事項一覧 |
 | POST | `/memory/archive` | 古い記憶をアーカイブ |
 
+→ 詳細: [GET /memory/list](./memory)
+
 ### エージェント
 
 | メソッド | パス | 説明 |
 |---------|------|------|
 | POST | `/agent/run` | エージェントタスクを実行 |
 | GET | `/agent/task/{id}` | タスク状態確認 |
+| GET | `/agent/task/{id}/stream` | リアルタイム進捗（SSE）|
 | GET | `/agent/tasks` | タスク一覧 |
 | DELETE | `/agent/task/{id}` | タスクをキャンセル |
 | GET | `/org/status` | 組織・エージェント状態 |
+
+→ 詳細: [POST /agent/run](./agent)
 
 ### スケジュール
 
@@ -127,6 +176,17 @@ cat /opt/cocoro/core/infra/docker/.env | grep COCORO_API_KEY
 | GET | `/personality/values` | 価値観パラメータ |
 | GET | `/personality/evolution` | 成長・進化履歴 |
 
+→ 詳細: [人格 API](./personality)
+
+### セットアップ
+
+| メソッド | パス | 説明 |
+|---------|------|------|
+| GET | `/setup/status` | Boot Wizard の状態確認 |
+| POST | `/setup/reset` | Boot Wizard をリセット |
+| GET | `/setup/questions` | 40問の質問一覧 |
+| POST | `/setup/answer` | 質問への回答を送信 |
+
 ### システム
 
 | メソッド | パス | 説明 |
@@ -134,6 +194,7 @@ cat /opt/cocoro/core/infra/docker/.env | grep COCORO_API_KEY
 | GET | `/health` | ヘルスチェック |
 | GET | `/dashboard` | Web ダッシュボード |
 | GET | `/metrics` | パフォーマンス指標 |
+| GET | `/system/config` | 現在の設定確認 |
 
 ---
 
@@ -144,7 +205,7 @@ cat /opt/cocoro/core/infra/docker/.env | grep COCORO_API_KEY
 ```json
 {
   "status": "success",
-  "data": { ... },
+  "data": { "..." : "..." },
   "timestamp": "2026-03-14T10:30:00Z"
 }
 ```
@@ -169,8 +230,8 @@ cat /opt/cocoro/core/infra/docker/.env | grep COCORO_API_KEY
 |--------|------|
 | 200 | 成功 |
 | 201 | 作成成功 |
-| 400 | リクエストエラー |
-| 401 | 認証エラー |
+| 400 | リクエストエラー（パラメータ不正）|
+| 401 | 認証エラー（API キー無効）|
 | 403 | アクセス拒否（IP フィルタ等）|
 | 404 | リソースが見つからない |
 | 429 | レートリミット超過 |
@@ -182,25 +243,20 @@ cat /opt/cocoro/core/infra/docker/.env | grep COCORO_API_KEY
 
 ```
 デフォルト制限:
-- チャット: 60 リクエスト / 分
-- その他: 120 リクエスト / 分
-- ファイルアップロード: 10 リクエスト / 分
+  チャット:          60 リクエスト / 分
+  その他 API:       120 リクエスト / 分
+  ファイルアップロード: 10 リクエスト / 分
 
 レートリミット超過時:
-HTTP 429 Too Many Requests
-Retry-After: 30  (秒後に再試行可能)
+  HTTP 429 Too Many Requests
+  Retry-After: 30  ← 秒後に再試行可能
 ```
 
----
-
-## OpenAPI / Swagger
-
-インタラクティブな API ドキュメントがローカルで確認できます：
-
-```
-http://cocoro.local:8001/docs     # Swagger UI
-http://cocoro.local:8001/redoc   # ReDoc
-http://cocoro.local:8001/openapi.json  # OpenAPI スキーマ
+レートリミットの変更（`.env`）:
+```bash
+RATE_LIMIT_CHAT_PER_MINUTE=120
+RATE_LIMIT_API_PER_MINUTE=300
+RATE_LIMIT_ENABLED=true
 ```
 
 ---
@@ -217,13 +273,8 @@ const cocoro = new CocoroClient({
   apiKey: process.env.COCORO_API_KEY,
 });
 
-// チャット
-const response = await cocoro.chat.send('こんにちは！');
-
-// 感情状態の取得
+const response = await cocoro.chat.stream('こんにちは！');
 const emotion = await cocoro.emotion.getState();
-
-// シンクロ率の取得
 const syncRate = await cocoro.sync.getRate();
 ```
 

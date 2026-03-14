@@ -99,6 +99,9 @@ const sidebars: SidebarsConfig = {
                 'troubleshooting/index',
             ],
         },
+
+        // Release Notes
+        'release-notes',
     ],
 };
 
