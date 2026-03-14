@@ -1,147 +1,244 @@
 ---
-title: Memory API
-sidebar_position: 4
+title: GET /memory/list
+sidebar_position: 5
+description: 記憶一覧・検索・追加・削除APIのリファレンス。セマンティック検索と学習事項の取得方法を解説。
 ---
 
-# 🧠 Memory API リファレンス
+# GET /memory/list
+
+記憶の一覧取得・検索・追加・削除を行う API リファレンスです。
 
 ---
 
-## POST /memory/search
-
-意味的類似検索でメモリを検索します（pgvector）。
+## GET /memory/list — 記憶一覧
 
 ```bash
-curl -X POST http://cocoro.local:8001/memory/search \
-  -H "Authorization: Bearer $COCORO_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "好きな食べ物",
-    "limit": 5,
-    "threshold": 0.7,
-    "category": "personal"
-  }'
+GET /memory/list?limit=20&offset=0&type=conversation&min_importance=0.5
+Authorization: Bearer {COCORO_API_KEY}
 ```
+
+### クエリパラメータ
+
+| パラメータ | 型 | デフォルト | 説明 |
+|-----------|-----|---------|------|
+| `limit` | integer | 20 | 取得件数（最大 100）|
+| `offset` | integer | 0 | オフセット（ページング用）|
+| `type` | string | — | 記憶タイプでフィルタ（後述）|
+| `min_importance` | float | 0.0 | 最小重要度スコア |
+| `since` | string | — | 指定日時以降の記憶（ISO 8601）|
+| `until` | string | — | 指定日時以前の記憶（ISO 8601）|
+| `tag` | string | — | タグでフィルタ |
+
+### 記憶タイプ一覧
+
+| type | 説明 |
+|------|------|
+| `conversation` | 会話の記憶 |
+| `user_info` | ユーザー個人情報 |
+| `learning` | 学習事項 |
+| `task` | タスク・予定の記録 |
+| `emotional` | 感情的な出来事 |
+
+### レスポンス
+
+```json
+{
+  "memories": [
+    {
+      "id": "mem_abc123",
+      "content": "cocoro-docs のドキュメント拡充作業について話した。15ページを追加する計画。",
+      "importance": 0.85,
+      "memory_type": "conversation",
+      "tags": ["work", "cocoro-docs", "documentation"],
+      "created_at": "2026-03-14T10:30:00Z",
+      "last_accessed": "2026-03-14T10:30:00Z",
+      "access_count": 3
+    }
+  ],
+  "total": 1482,
+  "limit": 20,
+  "offset": 0,
+  "has_more": true
+}
+```
+
+---
+
+## POST /memory/search — セマンティック検索
+
+pgvector によるベクトル類似検索です。
+
+```json
+POST /memory/search
+Content-Type: application/json
+
+{
+  "query": "プロジェクトの進捗",
+  "limit": 5,
+  "threshold": 0.7,
+  "type": "conversation",
+  "since": "2026-01-01T00:00:00Z"
+}
+```
+
+### リクエストパラメータ
+
+| パラメータ | 型 | 必須 | 説明 |
+|-----------|-----|------|------|
+| `query` | string | ✅ | 検索クエリ（自然言語）|
+| `limit` | integer | — | 取得件数（デフォルト: 5）|
+| `threshold` | float | — | 類似度の閾値（0.0〜1.0、デフォルト: 0.7）|
+| `type` | string | — | 記憶タイプでフィルタ |
+| `since` | string | — | 指定日時以降を検索 |
+
+### レスポンス
 
 ```json
 {
   "results": [
     {
-      "id": "mem_abc123",
-      "content": "ユーザーはラーメンが好きだと話していた。特に博多系が好みとのこと。",
-      "similarity": 0.92,
-      "importance": 0.8,
-      "category": "personal",
-      "created_at": "2026-02-15T10:30:00Z",
-      "access_count": 5
+      "id": "mem_xyz789",
+      "content": "cocoro-docs に15ページ追加する作業が完了した",
+      "similarity": 0.94,
+      "importance": 0.85,
+      "created_at": "2026-03-13T15:00:00Z"
+    },
+    {
+      "id": "mem_def456",
+      "content": "sidebars.ts の設定を完了させた",
+      "similarity": 0.81,
+      "importance": 0.72,
+      "created_at": "2026-03-13T16:30:00Z"
     }
   ],
-  "total": 1
+  "query": "プロジェクトの進捗",
+  "total_searched": 1482
 }
 ```
 
-### クエリパラメータ
-
-| フィールド | 型 | デフォルト | 説明 |
-|-----------|-----|---------|------|
-| `query` | string | 必須 | 検索クエリ |
-| `limit` | int | 5 | 最大取得件数 |
-| `threshold` | float | 0.7 | 類似度閾値（0〜1）|
-| `category` | string | - | カテゴリフィルター |
-
 ---
 
-## POST /memory/store
+## POST /memory/add — 記憶を手動追加
 
-新しいメモリを手動で保存します。
+```json
+POST /memory/add
+Content-Type: application/json
 
-```bash
-curl -X POST http://cocoro.local:8001/memory/store \
-  -H "Authorization: Bearer $COCORO_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "ユーザーの誕生日は3月15日。毎年お祝いの言葉を準備すること。",
-    "category": "personal",
-    "importance": 0.95
-  }'
+{
+  "content": "MDLシステムズの主力製品はCocoro OS（AI意識OS）",
+  "importance": 0.9,
+  "memory_type": "user_info",
+  "tags": ["work", "company"],
+  "metadata": {
+    "source": "manual"
+  }
+}
 ```
 
-### メモリカテゴリ
+### レスポンス
 
-| カテゴリ | 説明 | TTL |
-|---------|------|-----|
-| `personal` | 個人情報・好み | 永続 |
-| `knowledge` | 学習した知識 | 永続 |
-| `experience` | 体験・出来事 | 永続 |
-| `preference` | 好みや傾向 | 永続 |
-| `task` | タスク関連 | 完了後 30 日 |
-
----
-
-## GET /memory/list
-
-メモリの一覧を取得します。
-
-```bash
-curl "http://cocoro.local:8001/memory/list?category=personal&limit=20&page=1" \
-  -H "Authorization: Bearer $COCORO_API_KEY"
+```json
+{
+  "id": "mem_new001",
+  "content": "MDLシステムズの主力製品はCocoro OS（AI意識OS）",
+  "importance": 0.9,
+  "created_at": "2026-03-14T10:30:00Z",
+  "vector_indexed": true
+}
 ```
 
 ---
 
-## DELETE /memory/&#123;id&#125;
-
-特定のメモリを削除します。
+## DELETE `/memory/{id}` — 記憶を削除
 
 ```bash
-curl -X DELETE http://cocoro.local:8001/memory/mem_abc123 \
-  -H "Authorization: Bearer $COCORO_API_KEY"
-```
-
----
-
-## GET /memory/context
-
-現在のセッションの短期メモリ（会話コンテキスト）を取得します。
-
-```bash
-curl "http://cocoro.local:8001/memory/context?session_id=sess_abc123" \
-  -H "Authorization: Bearer $COCORO_API_KEY"
-```
-
----
-
-## DELETE /memory/context
-
-短期メモリをクリアします（会話リセット）。
-
-```bash
-curl -X DELETE "http://cocoro.local:8001/memory/context?session_id=sess_abc123" \
-  -H "Authorization: Bearer $COCORO_API_KEY"
-```
-
----
-
-## GET /memory/stats
-
-メモリストアの統計情報を取得します。
-
-```bash
-curl http://cocoro.local:8001/memory/stats \
-  -H "Authorization: Bearer $COCORO_API_KEY"
+DELETE /memory/mem_abc123
+Authorization: Bearer {COCORO_API_KEY}
 ```
 
 ```json
 {
-  "total_memories": 1247,
-  "by_category": {
-    "personal": 523,
-    "knowledge": 412,
-    "experience": 312
+  "status": "success",
+  "deleted_id": "mem_abc123",
+  "message": "記憶を削除しました。"
+}
+```
+
+---
+
+## GET /memory/learnings — 学習事項一覧
+
+会話から自動抽出された学習事項を取得します。
+
+```bash
+GET /memory/learnings?topic=AI&limit=10
+```
+
+```json
+{
+  "learnings": [
+    {
+      "id": "learn_001",
+      "topic": "Cocoro OS",
+      "content": "シンクロ率が92%を超えると Divergence Ceiling が発動し学習停止",
+      "confidence": 0.95,
+      "source_memory_id": "mem_abc123",
+      "created_at": "2026-03-08T10:00:00Z"
+    }
+  ],
+  "total": 387
+}
+```
+
+---
+
+## GET /memory/stats — 統計情報
+
+```bash
+GET /memory/stats
+```
+
+```json
+{
+  "total_memories": 1482,
+  "by_type": {
+    "conversation": 1102,
+    "user_info": 48,
+    "learning": 234,
+    "task": 78,
+    "emotional": 20
   },
-  "vector_dimensions": 1536,
-  "storage_mb": 245.6,
-  "oldest_memory": "2026-01-01T00:00:00Z",
-  "last_consolidation": "2026-03-13T03:00:00Z"
+  "storage_mb": 124.5,
+  "oldest_memory": "2026-01-15T08:00:00Z",
+  "avg_importance": 0.62,
+  "learnings_count": 387,
+  "last_archive": "2026-03-14T04:00:00Z"
+}
+```
+
+---
+
+## POST /memory/archive — アーカイブ実行
+
+重要度の低い古い記憶を圧縮・削除します（スケジューラーによる自動実行もあります）。
+
+```json
+POST /memory/archive
+Content-Type: application/json
+
+{
+  "older_than_days": 90,
+  "min_importance_to_keep": 0.4,
+  "dry_run": true
+}
+```
+
+```json
+{
+  "status": "dry_run",
+  "would_archive": 234,
+  "would_delete": 89,
+  "storage_freed_mb": 12.3,
+  "message": "dry_run=true のため実際の変更はありません"
 }
 ```

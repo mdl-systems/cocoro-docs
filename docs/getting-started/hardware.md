@@ -1,86 +1,123 @@
 ---
 title: 必要なハードウェア
-sidebar_position: 2
+sidebar_position: 1
+description: Cocoro OS の推奨ハードウェア構成。Intel N95 miniPC を中心に、必要なスペックと購入ガイドを解説。
 ---
 
-# 🖥️ 必要なハードウェア
+# 💻 必要なハードウェア
 
-Cocoro OS は miniPC 上でローカル常時稼働するよう設計されています。
-このページでは推奨スペックと購入ガイドを説明します。
+Cocoro OS は **Intel N95 搭載 miniPC** での動作を標準として設計されています。
+24時間365日の常時稼働を想定し、低消費電力・高コスパ・静音性を重視しています。
 
 ---
 
-## 推奨スペック
+## 推奨構成（標準）
 
-| 項目 | 最小構成 | 推奨構成 | ハイスペック |
-|------|---------|---------|------------|
-| **CPU** | Intel N95 (4コア) | Intel N100 (4コア) | Core i5-1235U以上 |
-| **RAM** | 8GB | 16GB | 32GB |
-| **ストレージ** | 256GB NVMe SSD | 512GB NVMe SSD | 1TB NVMe SSD |
-| **ネットワーク** | 有線LAN 1Gbps | 有線LAN 1Gbps | 有線 + Wi-Fi 6 |
-| **電源** | 12〜19V DC | 12〜19V DC | 12〜19V DC |
-| **消費電力** | 約10W（アイドル） | 約15W（アイドル） | 約25W（アイドル） |
+:::info 推奨スペック
+この構成で Cocoro OS のすべての機能が快適に動作します。
+:::
 
-:::tip Intel N95 が最もコスパ優秀
-エントリー向けの **Intel N95** でも Cocoro OS は十分動作します。
-RAM **16GB** にアップグレードすることを強く推奨します（pgvector の検索性能が大きく向上）。
+| パーツ | 推奨スペック | 備考 |
+|--------|------------|------|
+| **CPU** | Intel N95（4コア / 3.4GHz Burst）| TDP 15W、静音・省電力 |
+| **RAM** | 16GB DDR4/DDR5 | 最低 8GB、16GB 推奨 |
+| **ストレージ** | 512GB NVMe SSD | PostgreSQL 永続ストレージ含む |
+| **OS** | Debian 13（bookworm）| cocoro-installer で自動インストール |
+| **ネットワーク** | 有線 LAN 1Gbps | 無線 LAN も可 |
+| **消費電力** | 約 10〜15W | 年間電気代 約 1,600 円 |
+
+### 購入例（参考）
+
+| 製品名 | CPU | RAM | SSD | 参考価格 |
+|--------|-----|-----|-----|---------|
+| KINGNOVY N95 | Intel N95 | 16GB | 512GB | 約 25,000 円 |
+| TRIGKEY G5 | Intel N100 | 16GB | 500GB | 約 27,000 円 |
+| BMAX B6 Pro | Intel N100 | 16GB | 512GB | 約 29,000 円 |
+
+:::tip Amazon / AliExpress で購入可
+「N95 miniPC 16GB」で検索すると多数の選択肢が見つかります。
+Amazonなら在庫も安定しており、翌日〜2日で届きます。
 :::
 
 ---
 
-## 動作確認済みデバイス
+## 最小構成（開発・テスト用）
 
-| デバイス | CPU | RAM | 価格目安 | 評価 |
-|---------|-----|-----|---------|------|
-| GMKtec G3 / G5 | N95 / N100 | 8〜16GB | ¥15,000〜25,000 | ⭐⭐⭐⭐ |
-| Beelink EQ12 | N100 | 8〜16GB | ¥18,000〜28,000 | ⭐⭐⭐⭐⭐ |
-| MINISFORUM UM350 | R5-3550H | 16GB | ¥35,000〜 | ⭐⭐⭐⭐⭐ |
-| Trigkey S3 | N5095 | 8GB | ¥12,000〜 | ⭐⭐⭐ |
+| パーツ | 最小スペック | 注意点 |
+|--------|------------|--------|
+| CPU | Intel N95 または同等 | ARM 系は未サポート |
+| RAM | 8GB | 複数エージェント同時実行は不安定になる場合あり |
+| ストレージ | 256GB SSD | pgvector の記憶量が制限される |
 
 ---
 
-## ストレージ パーティション構成
+## パーティション構成
 
-cocoro-installer が自動的に以下のように分割します：
+cocoro-installer が以下のパーティションを自動作成します：
 
 | マウントポイント | サイズ | 用途 |
 |----------------|--------|------|
-| `/boot/efi` | 512MB | EFI ブートパーティション |
-| `/` | 50GB | OS / アプリケーション |
-| `/var/lib/docker` | 100GB | Docker イメージ・コンテナ |
-| swap | 4GB | スワップ |
-| `/data/cocoro` | 残り全部 | PostgreSQL・Redis 永続データ |
-
-512GB SSD の場合、`/data/cocoro` に約**357GB**が割り当てられます。
+| `/boot/efi` | 512 MB | EFI システムパーティション |
+| `/` | 50 GB | ルートファイルシステム（OS + アプリ）|
+| `/var/lib/docker` | 100 GB | Docker イメージ・コンテナ |
+| `swap` | 4 GB | スワップ領域 |
+| `/data/cocoro` | 残り全部 | PostgreSQL / Redis 永続データ |
 
 ---
 
-## 周辺機器
+## その他の必要なもの
 
-初回セットアップに必要なもの：
-
-- **USB メモリ** 8GB 以上（インストーラー書き込み用）
-- **モニター** + **HDMI ケーブル**（初回確認用。インストール後は不要）
-- **有線 LAN ケーブル**（Wi-Fi より安定）
-- **USBキーボード**（BIOS 設定変更時のみ）
-
----
-
-## BIOS 設定
-
-多くの miniPC で以下の設定が必要です：
-
-1. **Secure Boot** → **Disabled**
-2. **Boot Priority** → USB First
-3. **Wake on LAN** → Enabled（リモート起動したい場合）
-
-設定方法は機種によって異なります。電源 ON 直後に `Del` または `F2` キーで BIOS に入れます。
+| アイテム | 用途 | 備考 |
+|--------|------|------|
+| **USB メモリ 8GB 以上** | cocoro-installer の起動ディスク | インストール後は再利用可 |
+| **LAN ケーブル**（推奨）| miniPC をルーターに接続 | 無線接続より安定 |
+| **Windows PC**（作業用）| ISO ビルド・USB 書き込み | macOS も可 |
+| **Rufus**（フリーソフト）| USB への ISO 書き込み | [https://rufus.ie](https://rufus.ie) |
 
 ---
 
-## 購入後にやること
+## ネットワーク構成
 
-1. RAM/SSD のアップグレード（必要な場合）
-2. BIOS 設定の変更
-3. cocoro-installer で USB を作成
-4. → [インストール方法へ](./installation)
+標準的なホームネットワークでの接続構成：
+
+```
+[ インターネット ]
+       │
+   ルーター（192.168.1.1 など）
+       │
+   ├── miniPC (cocoro.local / 192.168.1.xxx)  ← Cocoro OS
+   ├── PC / スマホ                              ← cocoro-console にアクセス
+   └── その他デバイス
+```
+
+miniPC は DHCP で自動的に IP アドレスを取得し、`cocoro.local`（mDNS）で名前解決できます。
+
+---
+
+## ARM・Raspberry Pi について
+
+:::warning ARM は非サポート
+現在 ARM アーキテクチャ（Raspberry Pi、Apple M1/M2 など）は公式サポート外です。
+
+**理由:**
+- `cocoro-installer` の preseed が x86_64 前提
+- Docker イメージが amd64 向けにビルドされている
+- pgvector の SIMD 最適化が x86_64 向け
+
+将来的な ARM 対応は検討中です。
+:::
+
+---
+
+## 購入から起動までの流れ
+
+```
+①  Amazon などで miniPC を注文（2〜7日）
+②  Windows PC で Rufus をダウンロード
+③  cocoro-installer の ISO をビルドまたはダウンロード
+④  USB に ISO を書き込む（約 5 分）
+⑤  miniPC に USB を挿して電源 ON（全自動 / 約 20 分）
+⑥  LAN からアクセスして Boot Wizard 開始
+```
+
+→ 次は **[インストールガイド](./installation)** へ

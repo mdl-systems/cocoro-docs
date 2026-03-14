@@ -31,6 +31,25 @@ const sidebars: SidebarsConfig = {
             ],
         },
 
+        // Guides
+        {
+            type: 'category',
+            label: '📖 機能ガイド',
+            items: [
+                'guides/specialist-agents',
+                'guides/memory-system',
+                'guides/sync-rate-guide',
+                'guides/task-scheduler',
+                'guides/file-upload',
+                'guides/cloudflare-tunnel',
+                'guides/nextjs-integration',
+                'guides/personality-setup',
+                'guides/custom-agent',
+                'guides/multi-node',
+                'guides/factory-kitting',
+            ],
+        },
+
         // API Reference
         {
             type: 'category',
@@ -38,24 +57,11 @@ const sidebars: SidebarsConfig = {
             items: [
                 'api/overview',
                 'api/chat',
-                'api/personality',
+                'api/emotion',
+                'api/sync',
                 'api/memory',
                 'api/agent',
-            ],
-        },
-
-        // Guides
-        {
-            type: 'category',
-            label: '📖 ガイド',
-            items: [
-                'guides/specialist-agents',
-                'guides/multi-node',
-                'guides/custom-agent',
-                'guides/cloudflare-tunnel',
-                'guides/nextjs-integration',
-                'guides/personality-setup',
-                'guides/factory-kitting',
+                'api/personality',
             ],
         },
 
