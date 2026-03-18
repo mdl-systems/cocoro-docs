@@ -4,6 +4,16 @@ const sidebars: SidebarsConfig = {
     tutorialSidebar: [
         'intro',
 
+        // Setup
+        {
+            type: 'category',
+            label: '⚡ セットアップ',
+            collapsed: false,
+            items: [
+                'setup/quickstart',
+            ],
+        },
+
         // Getting Started
         {
             type: 'category',
@@ -41,6 +51,7 @@ const sidebars: SidebarsConfig = {
                 'guides/sync-rate-guide',
                 'guides/task-scheduler',
                 'guides/file-upload',
+                'guides/external-access',
                 'guides/cloudflare-tunnel',
                 'guides/nextjs-integration',
                 'guides/personality-setup',

@@ -1,79 +1,82 @@
 ---
 title: API リファレンス概要
 sidebar_position: 1
-description: Cocoro OS (cocoro-core) の REST API リファレンス。Swagger UI へのアクセス方法・認証・全エンドポイント一覧を解説。
+description: Cocoro OS (cocoro-core) の REST API 概要。Bearer Token認証・主要エンドポイント一覧・レスポンス形式を解説。
 ---
 
-# 📡 API リファレンス
+# 📡 API リファレンス概要
 
 **cocoro-core** は FastAPI ベースの REST API を提供します。
 **131 エンドポイント**を持ち、すべての操作をプログラムから実行できます。
 
 ---
 
-## 🔗 インタラクティブ API ドキュメント（Swagger UI）
+## インタラクティブ API ドキュメント（Swagger UI）
 
-cocoro-core を起動した状態で、以下の URL にアクセスすると **Swagger UI** が使えます。
+cocoro-core 起動後、以下の URL にアクセスすると **Swagger UI** でAPIを試せます。
 
-:::info Swagger UI でAPIを試す
-miniPC の IP アドレスに合わせて URL を書き換えてください。
-:::
+| ツール | URL |
+|--------|-----|
+| **Swagger UI** | `http://cocoro.local:8001/docs` |
+| **Swagger UI（外部）** | `https://{NODE_ID}.cocoro-os.com/api/docs` |
+| **ReDoc** | `http://cocoro.local:8001/redoc` |
+| **OpenAPI JSON** | `http://cocoro.local:8001/openapi.json` |
 
-| ツール | URL | 説明 |
-|--------|-----|------|
-| **Swagger UI** | `http://YOUR_MINIPC_IP:8001/docs` | インタラクティブに API をテスト可能 |
-| **ReDoc** | `http://YOUR_MINIPC_IP:8001/redoc` | 読みやすいリファレンス形式 |
-| **OpenAPI JSON** | `http://YOUR_MINIPC_IP:8001/openapi.json` | スキーマファイル（SDK生成等に利用）|
-
-**YOUR_MINIPC_IP の確認方法:**
-```bash
-# miniPC に SSH 接続後
-hostname -I | awk '{print $1}'
-# → 192.168.1.100 など
-```
-
-よく使う組み合わせ：
-```
-http://cocoro.local:8001/docs    # mDNS が使える環境
-http://192.168.1.100:8001/docs   # IP アドレス直接
-```
-
-### Swagger UI の使い方
-
-1. 上記 URL にブラウザでアクセス
+**Swagger UI の使い方:**
+1. URL をブラウザで開く
 2. 右上「Authorize 🔒」をクリック
-3. `Bearer YOUR_COCORO_API_KEY` を入力して「Authorize」
-4. 各エンドポイントを展開 → 「Try it out」→「Execute」でテスト可能
+3. `Bearer {COCORO_API_KEY}` を入力して「Authorize」
+4. 各エンドポイントを展開 → 「Try it out」→「Execute」でテスト
 
 ---
 
 ## ベース URL
 
 ```bash
-http://cocoro.local:8001          # mDNS 経由（推奨）
-http://192.168.x.xxx:8001         # IP アドレス直接
-https://your-domain.com:8001      # Cloudflare Tunnel 経由（外部アクセス）
+# LAN 内アクセス（推奨）
+http://cocoro.local:8001
+
+# IP アドレス直接
+http://192.168.x.xxx:8001
+
+# Cloudflare Tunnel 経由（外部アクセス）
+https://{NODE_ID}.cocoro-os.com/api
 ```
 
 ---
 
-## 認証
+## 認証方法（Bearer Token）
 
-すべてのエンドポイントは **Bearer Token 認証** が必要です。
+すべてのエンドポイントで **Bearer Token 認証**が必要です。
+
+### API キーを直接使う（シンプル）
 
 ```bash
-# API キーをそのまま Bearer として使用
 curl http://cocoro.local:8001/health \
   -H "Authorization: Bearer YOUR_COCORO_API_KEY"
+```
 
-# JWT トークンを取得して使用（有効期間: 1時間）
+### JWT トークンを取得して使う（推奨）
+
+```bash
+# JWT トークンを取得（有効期間: 1時間）
 curl -X POST http://cocoro.local:8001/auth/token \
   -H "Content-Type: application/json" \
   -d '{"api_key": "YOUR_COCORO_API_KEY"}'
-# → {"access_token": "eyJ...", "expires_in": 3600}
+
+# レスポンス
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 3600
+}
+
+# 取得したトークンで API を呼び出す
+curl http://cocoro.local:8001/chat \
+  -H "Authorization: Bearer eyJhbGci..."
 ```
 
-:::tip COCORO_API_KEY の確認方法
+:::tip COCORO_API_KEY の確認
 ```bash
 ssh cocoro-admin@cocoro.local
 grep COCORO_API_KEY /opt/cocoro/core/infra/docker/.env
@@ -82,131 +85,186 @@ grep COCORO_API_KEY /opt/cocoro/core/infra/docker/.env
 
 ---
 
-## エンドポイント一覧
+## 主要エンドポイント一覧
 
-### チャット
+### `/chat` — チャット
 
 | メソッド | パス | 説明 |
 |---------|------|------|
-| POST | `/chat` | 通常チャット（同期・JSON）|
-| POST | `/chat/stream` | SSE ストリーミングチャット |
+| `POST` | `/chat` | 通常チャット（同期・JSON レスポンス）|
+| `POST` | `/chat/stream` | SSE ストリーミングチャット（リアルタイム）|
+
+```bash
+# 通常チャット
+curl -X POST http://cocoro.local:8001/chat \
+  -H "Authorization: Bearer $COCORO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "今日の調子はどう？"}'
+
+# ストリーミングチャット
+curl -X POST http://cocoro.local:8001/chat/stream \
+  -H "Authorization: Bearer $COCORO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "AIトレンドを調べてまとめて"}'
+```
 
 → 詳細: [POST /chat/stream](./chat)
 
-### 感情
+---
+
+### `/sync/rate` — シンクロ率
 
 | メソッド | パス | 説明 |
 |---------|------|------|
-| GET | `/emotion/state` | 現在の感情状態を取得 |
-| POST | `/emotion/update` | 感情を手動更新 |
-| GET | `/emotion/history` | 感情履歴を取得 |
+| `GET` | `/sync/rate` | 現在のシンクロ率を取得 |
+| `GET` | `/sync/history` | シンクロ率の推移（過去N日）|
+| `GET` | `/sync/ceiling` | Divergence Ceiling の状態 |
+| `POST` | `/sync/reset` | シンクロ率をリセット |
 
-→ 詳細: [GET /emotion/state](./emotion)
+```bash
+# 現在のシンクロ率
+curl http://cocoro.local:8001/sync/rate \
+  -H "Authorization: Bearer $COCORO_API_KEY"
 
-### シンクロ率
-
-| メソッド | パス | 説明 |
-|---------|------|------|
-| GET | `/sync/rate` | 現在のシンクロ率 |
-| GET | `/sync/history` | シンクロ率の推移 |
-| GET | `/sync/ceiling` | Divergence Ceiling 状態 |
-| POST | `/sync/reset` | シンクロ率をリセット |
+# レスポンス
+{
+  "sync_rate": 73.2,
+  "trend": "+0.3",
+  "level": "深化期",
+  "ceiling": {
+    "threshold": 92.0,
+    "active": false,
+    "remaining": 18.8
+  }
+}
+```
 
 → 詳細: [GET /sync/rate](./sync)
 
-### 記憶
+---
+
+### `/emotion/state` — 感情状態
 
 | メソッド | パス | 説明 |
 |---------|------|------|
-| GET | `/memory/list` | 記憶一覧 |
-| POST | `/memory/search` | セマンティック検索 |
-| POST | `/memory/add` | 記憶を手動追加 |
-| DELETE | `/memory/{id}` | 記憶を削除 |
-| GET | `/memory/stats` | 記憶統計情報 |
-| GET | `/memory/learnings` | 学習事項一覧 |
-| POST | `/memory/archive` | 古い記憶をアーカイブ |
+| `GET` | `/emotion/state` | 現在の感情状態（8要素）|
+| `POST` | `/emotion/update` | 感情を手動更新 |
+| `GET` | `/emotion/history` | 感情履歴の取得 |
 
-→ 詳細: [GET /memory/list](./memory)
+```bash
+# 現在の感情状態
+curl http://cocoro.local:8001/emotion/state \
+  -H "Authorization: Bearer $COCORO_API_KEY"
 
-### エージェント
+# レスポンス
+{
+  "emotion": {
+    "primary": "joy",
+    "intensity": 0.72,
+    "valence": 0.65
+  },
+  "components": {
+    "joy": 0.72,
+    "trust": 0.68,
+    "fear": 0.12,
+    "surprise": 0.23,
+    "sadness": 0.08,
+    "anger": 0.05,
+    "disgust": 0.03,
+    "anticipation": 0.41
+  },
+  "stability": 0.81
+}
+```
 
-| メソッド | パス | 説明 |
-|---------|------|------|
-| POST | `/agent/run` | エージェントタスクを実行 |
-| GET | `/agent/task/{id}` | タスク状態確認 |
-| GET | `/agent/task/{id}/stream` | リアルタイム進捗（SSE）|
-| GET | `/agent/tasks` | タスク一覧 |
-| DELETE | `/agent/task/{id}` | タスクをキャンセル |
-| GET | `/org/status` | 組織・エージェント状態 |
-
-→ 詳細: [POST /agent/run](./agent)
-
-### スケジュール
-
-| メソッド | パス | 説明 |
-|---------|------|------|
-| POST | `/schedules` | 予定を追加 |
-| GET | `/schedules` | 予定一覧 |
-| PUT | `/schedules/{id}` | 予定を更新 |
-| DELETE | `/schedules/{id}` | 予定を削除 |
-
-### タスク
-
-| メソッド | パス | 説明 |
-|---------|------|------|
-| POST | `/tasks` | タスクを作成 |
-| GET | `/tasks` | タスク一覧 |
-| PUT | `/tasks/{id}` | タスクを更新 |
-| DELETE | `/tasks/{id}` | タスクを削除 |
-
-### ファイル
-
-| メソッド | パス | 説明 |
-|---------|------|------|
-| POST | `/files/upload` | ファイルをアップロード |
-| GET | `/files` | ファイル一覧 |
-| DELETE | `/files/{id}` | ファイルを削除 |
-
-### 人格
-
-| メソッド | パス | 説明 |
-|---------|------|------|
-| GET | `/personality` | 現在の人格設定を取得 |
-| PUT | `/personality` | 人格設定を更新 |
-| GET | `/personality/values` | 価値観パラメータ |
-| GET | `/personality/evolution` | 成長・進化履歴 |
-
-→ 詳細: [人格 API](./personality)
-
-### セットアップ
-
-| メソッド | パス | 説明 |
-|---------|------|------|
-| GET | `/setup/status` | Boot Wizard の状態確認 |
-| POST | `/setup/reset` | Boot Wizard をリセット |
-| GET | `/setup/questions` | 40問の質問一覧 |
-| POST | `/setup/answer` | 質問への回答を送信 |
-
-### システム
-
-| メソッド | パス | 説明 |
-|---------|------|------|
-| GET | `/health` | ヘルスチェック |
-| GET | `/dashboard` | Web ダッシュボード |
-| GET | `/metrics` | パフォーマンス指標 |
-| GET | `/system/config` | 現在の設定確認 |
+→ 詳細: [GET /emotion/state](./emotion)
 
 ---
 
-## 共通レスポンス形式
+### `/nodes` — ノード管理
+
+複数ノード構成時のノード情報を管理します。
+
+| メソッド | パス | 説明 |
+|---------|------|------|
+| `GET` | `/nodes` | 登録済みノード一覧 |
+| `POST` | `/nodes/register` | 新しいノードを登録 |
+| `GET` | `/nodes/{node_id}` | 特定ノードの情報 |
+| `GET` | `/nodes/{node_id}/health` | ノードのヘルスチェック |
+| `DELETE` | `/nodes/{node_id}` | ノードを削除 |
+
+```bash
+# ノード一覧の取得
+curl http://cocoro.local:8001/nodes \
+  -H "Authorization: Bearer $COCORO_API_KEY"
+
+# レスポンス
+{
+  "nodes": [
+    {
+      "node_id": "home",
+      "name": "ホームノード",
+      "url": "https://home.cocoro-os.com/api",
+      "status": "healthy",
+      "role": "primary",
+      "sync_rate": 73.2,
+      "last_seen": "2026-03-18T14:50:00+09:00"
+    }
+  ],
+  "total": 1
+}
+```
+
+### 新しいノードを登録
+
+```bash
+curl -X POST http://cocoro.local:8001/nodes/register \
+  -H "Authorization: Bearer $COCORO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "node_id": "office",
+    "name": "オフィスノード",
+    "url": "https://office.cocoro-os.com/api",
+    "api_key": "OFFICE_NODE_API_KEY",
+    "role": "specialist",
+    "specialization": "research"
+  }'
+```
+
+---
+
+### その他の主要エンドポイント
+
+| カテゴリ | パス | 説明 |
+|---------|------|------|
+| **記憶** | `GET /memory/list` | 記憶の一覧取得 |
+| **記憶** | `POST /memory/search` | セマンティック検索 |
+| **記憶** | `POST /memory/add` | 記憶を手動追加 |
+| **エージェント** | `POST /agent/run` | タスクを自律実行 |
+| **エージェント** | `GET /agent/tasks` | タスク一覧 |
+| **スケジュール** | `POST /schedules` | 予定を追加 |
+| **スケジュール** | `GET /schedules` | 予定一覧 |
+| **タスク** | `POST /tasks` | タスクを作成 |
+| **人格** | `GET /personality` | 人格設定の取得 |
+| **人格** | `PUT /personality` | 人格設定を更新 |
+| **ファイル** | `POST /files/upload` | ファイルをアップロード |
+| **セットアップ** | `GET /setup/status` | Boot Wizard の状態 |
+| **システム** | `GET /health` | ヘルスチェック |
+| **システム** | `GET /metrics` | パフォーマンス指標 |
+
+---
+
+## レスポンス形式
 
 ### 成功レスポンス
 
 ```json
 {
   "status": "success",
-  "data": { "..." : "..." },
-  "timestamp": "2026-03-14T10:30:00Z"
+  "data": {
+    "...": "レスポンスデータ"
+  },
+  "timestamp": "2026-03-18T14:50:00+09:00"
 }
 ```
 
@@ -218,45 +276,55 @@ grep COCORO_API_KEY /opt/cocoro/core/infra/docker/.env
   "error": {
     "code": "UNAUTHORIZED",
     "message": "Invalid API key",
-    "detail": "..."
+    "detail": "The provided API key is invalid or expired."
   },
-  "timestamp": "2026-03-14T10:30:00Z"
+  "timestamp": "2026-03-18T14:50:00+09:00"
 }
+```
+
+### SSE ストリーミング形式（`/chat/stream`）
+
+```
+data: {"type": "start", "session_id": "sess_abc123"}\n\n
+data: {"type": "token", "content": "こんにちは"}\n\n
+data: {"type": "token", "content": "！"}\n\n
+data: {"type": "end", "metadata": {"sync_rate": 73.2, "emotion": {"primary": "joy"}}}\n\n
 ```
 
 ### HTTP ステータスコード
 
 | コード | 意味 |
 |--------|------|
-| 200 | 成功 |
-| 201 | 作成成功 |
-| 400 | リクエストエラー（パラメータ不正）|
-| 401 | 認証エラー（API キー無効）|
-| 403 | アクセス拒否（IP フィルタ等）|
-| 404 | リソースが見つからない |
-| 429 | レートリミット超過 |
-| 500 | サーバーエラー |
+| `200` | 成功 |
+| `201` | 作成成功 |
+| `400` | リクエストエラー（パラメータ不正）|
+| `401` | 認証エラー（API キー無効）|
+| `403` | アクセス拒否（IP フィルタ等）|
+| `404` | リソースが見つからない |
+| `429` | レートリミット超過 |
+| `500` | サーバー内部エラー |
 
 ---
 
 ## レートリミット
 
-```
-デフォルト制限:
-  チャット:          60 リクエスト / 分
-  その他 API:       120 リクエスト / 分
-  ファイルアップロード: 10 リクエスト / 分
+| エンドポイント | 制限 |
+|-------------|------|
+| `/chat`, `/chat/stream` | 60 リクエスト / 分 |
+| その他のAPI | 120 リクエスト / 分 |
+| `/files/upload` | 10 リクエスト / 分 |
 
 レートリミット超過時:
-  HTTP 429 Too Many Requests
-  Retry-After: 30  ← 秒後に再試行可能
-```
+```json
+HTTP 429 Too Many Requests
+Retry-After: 30
 
-レートリミットの変更（`.env`）:
-```bash
-RATE_LIMIT_CHAT_PER_MINUTE=120
-RATE_LIMIT_API_PER_MINUTE=300
-RATE_LIMIT_ENABLED=true
+{
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "Too many requests. Please wait 30 seconds."
+  }
+}
 ```
 
 ---
@@ -273,9 +341,22 @@ const cocoro = new CocoroClient({
   apiKey: process.env.COCORO_API_KEY,
 });
 
-const response = await cocoro.chat.stream('こんにちは！');
+// チャット（ストリーミング）
+for await (const event of cocoro.chat.stream('こんにちは！')) {
+  if (event.type === 'token') process.stdout.write(event.content);
+}
+
+// シンクロ率の取得
+const sync = await cocoro.sync.getRate();
+console.log(`シンクロ率: ${sync.sync_rate}%`);
+
+// 感情状態の取得
 const emotion = await cocoro.emotion.getState();
-const syncRate = await cocoro.sync.getRate();
+console.log(`感情: ${emotion.emotion.primary}`);
+
+// ノード一覧の取得
+const nodes = await cocoro.nodes.list();
+console.log(`ノード数: ${nodes.total}`);
 ```
 
 → [SDK リファレンスを見る](../sdk/overview)
