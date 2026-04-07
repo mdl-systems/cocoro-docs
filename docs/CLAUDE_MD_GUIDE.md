@@ -7,7 +7,8 @@ description: Antigravity（AIエージェント）がセッション開始時に
 # CLAUDE.md 統一ガイド
 
 > **対象**: mdl-systems 全 repo の CLAUDE.md 作成・更新担当者  
-> **強制度**: 全項目「必須」（任意項目は明示）
+> **強制度**: 全項目「必須」（任意項目は明示）  
+> **最終更新**: 2026-04-07
 
 ---
 
@@ -79,6 +80,16 @@ Antigravity が CLAUDE.md を自動読み込み
 | cocoro-llm-server | 192.168.50.112 | LLM推論（vLLM + LiteLLM） |
 | miniPC A | 192.168.50.92 | cocoro-core / cocoro-console |
 | miniPC B | 192.168.50.86 | cocoro-agent |
+| mdl（開発機） | 192.168.50.167 | AntGravity / 開発環境 |
+
+## LLMスタック
+
+| レイヤー | サービス | ポート | モデル | 役割 |
+|---------|---------|--------|-------|------|
+| Gateway | LiteLLM | :8000 | — | OpenAI互換ルーター |
+| Primary | vLLM | :8080 | Llama 4 Scout 109B Q4_K_M | alias: gpt-4o (72% VRAM) |
+| Secondary | vLLM | :8081 | Qwen 2.5 32B Dense | alias: gpt-4o-mini (23% VRAM) |
+| Fallback | Gemini API | — | Gemini 2.5 Flash | alias: claude-sonnet |
 ```
 
 > **絶対ルール**: ポート・IP・キー名は実態と一致させること。
@@ -218,6 +229,7 @@ git log --oneline -1
 # 作業完了後（毎回この順序で実行）
 git add -A
 git commit -m "<prefix>: <説明>"
+git push origin main
 git log --oneline -1   # ← 必ずこれを出力して記録
 ```
 
@@ -231,7 +243,7 @@ git log --oneline -1   # ← 必ずこれを出力して記録
 |--------|------|-----|
 | `feat` | 新機能追加 | `feat: add vector search to memory module` |
 | `fix` | バグ修正 | `fix: resolve Redis connection timeout` |
-| `docs` | ドキュメント追加・更新 | `docs: full system architecture` |
+| `docs` | ドキュメント追加・更新 | `docs: update ARCHITECTURE with Qwen 2.5 Dense` |
 | `test` | テスト追加・修正 | `test: add emotion pipeline unit tests` |
 | `refactor` | リファクタリング（機能変更なし） | `refactor: extract LLM client to adapter pattern` |
 | `chore` | ビルド設定・依存関係・ツール | `chore: upgrade vLLM to 0.4.3` |
@@ -248,7 +260,7 @@ git log --oneline -1   # ← 必ずこれを出力して記録
 
 **良い例:**
 ```
-docs: add VRAM allocation breakdown to ARCHITECTURE.md
+docs: update ARCHITECTURE with Qwen 2.5 Dense correction
 feat: implement pgvector cosine similarity search
 fix: correct LiteLLM port from 8001 to 8000
 infra: set GPU_MEMORY_UTILIZATION=0.90 for vLLM
@@ -274,11 +286,97 @@ docs(llm-server): add vLLM build instructions for Blackwell
 
 ---
 
-## 5. 各 repo の CLAUDE.md 最終更新日一覧
+## 5. 3セッション並列開発の運用手順
+
+### 概要
+
+mdl-systems では複数の Antigravity セッションを同時に開いて並列開発することがある。
+セッション間でコンフリクトや作業重複が起きないよう、以下のルールに従う。
+
+### 5-1. セッション割り当て表（例）
+
+| セッション | 担当 repo / 領域 | ブランチ | 注意事項 |
+|------------|----------------|---------|---------|
+| Session A | cocoro-core（バックエンド修正） | `main` | DB schema 変更あり → 他セッションに通知 |
+| Session B | cocoro-console（UI実装） | `feat/new-ui` | API変更をSession Aと同期 |
+| Session C | cocoro-docs（ドキュメント更新） | `main` | コンフリクト最小。最後にmerge |
+
+### 5-2. 並列開発のルール
+
+```
+【セッション開始前】
+  1. git pull origin main  ← 必ず最新を取得してから開始
+  2. 担当範囲を明示してプロンプトに記載（例: 「Session A: cocoro-core/brain/以下のみ」）
+
+【作業中】
+  3. 他セッションと同じファイルを編集しない
+     → 担当範囲を分ける（ファイル / モジュール / ディレクトリ単位）
+  4. 共有リソース（DB schema / 環境変数 / API型定義）の変更は
+     他セッションに通知してから実施
+
+【作業完了時】
+  5. git add -A && git commit -m "<prefix>: <内容>"
+  6. git push origin <branch>
+  7. git log --oneline -1  ← ハッシュを記録・報告
+
+【マージ時】
+  8. 全セッション完了後に git pull + conflict解消
+  9. main に mergeしてから次のセッション群を開始
+```
+
+### 5-3. セッション間コンフリクト発生時の対処
+
+```bash
+# コンフリクト確認
+git status
+
+# 差分確認（自分の変更 vs 相手の変更）
+git diff HEAD origin/main
+
+# 手動解消後
+git add <conflict-files>
+git commit -m "fix: resolve merge conflict in <ファイル名>"
+git log --oneline -1
+```
+
+> **原則**: コンフリクトはクイックフィックスで解消しない。
+> 両セッションの変更意図を理解してから正しくマージすること。
+
+### 5-4. 並列セッションの引き継ぎプロンプト例
+
+次回3セッション開始時のプロンプトテンプレート：
+
+```
+## 本日の並列開発セットアップ
+
+Session A（cocoro-core）:
+  前回ハッシュ: <hash-A>
+  担当: brain/memory/ 以下の改修
+  継続タスク: <タスク内容>
+
+Session B（cocoro-console）:
+  前回ハッシュ: <hash-B>
+  担当: src/components/ 以下の実装
+  継続タスク: <タスク内容>
+
+Session C（cocoro-docs）:
+  前回ハッシュ: <hash-C>
+  担当: docs/ 以下のドキュメント更新
+  継続タスク: <タスク内容>
+
+【共通ルール】
+- 絶対ルール遵守（クイックフィックス禁止）
+- 担当範囲外のファイルは変更しない
+- 完了時は git log --oneline -1 を出力
+```
+
+---
+
+## 各 repo の CLAUDE.md 最終更新日一覧
 
 | Repo | CLAUDE.md の有無 | 最終更新日 | 備考 |
 |------|----------------|-----------|------|
-| `cocoro-docs` | ✅ あり | 2026-03-08 | 全 repo の情報を集約した親 CLAUDE.md |
+| `cocoro-docs` | ✅ あり | 2026-04-07 | 全 repo の情報を集約した親 CLAUDE.md |
 | `cocoro-core` | [TODO: 確認] | — | 53モジュール・131エンドポイント情報を含むべき |
 | `cocoro-console` | [TODO: 確認] | — | ポート3000・Ed25519認証情報を含むべき |
 | `cocoro-website` | [TODO: 確認] | — | PostgreSQL/Prisma・NextAuth情報を含むべき |
@@ -322,9 +420,19 @@ docs(llm-server): add vLLM build instructions for Blackwell
 
 | ホスト | IP | 役割 |
 |---|---|---|
-| cocoro-llm-server | 192.168.50.112 | LLM推論（vLLM + LiteLLM） |
-| miniPC A | 192.168.50.92 | cocoro-core / cocoro-console |
+| cocoro-llm-server | 192.168.50.112 | LLM推論（vLLM :8080/:8081 + LiteLLM :8000） |
+| miniPC A | 192.168.50.92 | cocoro-core :8001 / cocoro-console :3000 |
 | miniPC B | 192.168.50.86 | cocoro-agent |
+| mdl（開発機） | 192.168.50.167 | AntGravity / 開発環境 |
+
+## LLMスタック
+
+| レイヤー | ポート | モデル |
+|---------|--------|-------|
+| LiteLLM Gateway | :8000 | OpenAI互換ルーター |
+| vLLM Primary | :8080 | Llama 4 Scout 109B Q4_K_M (alias: gpt-4o) |
+| vLLM Secondary | :8081 | Qwen 2.5 32B Dense (alias: gpt-4o-mini) |
+| Fallback | — | Gemini 2.5 Flash (alias: claude-sonnet) |
 
 ---
 
@@ -380,4 +488,4 @@ docs(llm-server): add vLLM build instructions for Blackwell
 ---
 
 *このガイド自体も変更があれば即時更新し、更新履歴に記録すること。*  
-*最終更新: 2026-04-06*
+*最終更新: 2026-04-07*

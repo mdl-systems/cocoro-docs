@@ -1,6 +1,6 @@
 # ARCHITECTURE — Cocoro OS / mdl-systems
 
-> **最終更新**: 2026-04-06 | **対象環境**: Production (LAN 192.168.50.0/24)
+> **最終更新**: 2026-04-07 | **対象環境**: Production (LAN 192.168.50.0/24)
 >
 > このドキュメントは mdl-systems 全インフラのシステム構成を正確に記述します。
 > ポート・IP・モデル名はすべて実態と一致していること。未確定事項は `[TODO]` で明示。
@@ -48,7 +48,7 @@
  └─────────────────────────────────┼─────────────────────────────────────────────┘
                                    │
  ┌─────────────────────────────────▼─────────────────────────────────────────────┐
- │  cocoro-llm-server (192.168.50.112)  ※ 新規構築中                             │
+ │  cocoro-llm-server (192.168.50.112)  ※ 構築中                                │
  │                                                                               │
  │  ┌──────────────────────────────────────────────────────────────────────┐    │
  │  │         LiteLLM Gateway  :8000  (OpenAI互換 API)                    │    │
@@ -57,8 +57,8 @@
  │                         │                      │                          │    │
  │   ┌─────────────────────▼──────┐  ┌────────────▼──────────────────┐     │    │
  │   │  vLLM Primary       :8080  │  │  vLLM Secondary       :8081   │     │    │
- │   │  Llama 4 Scout 109B        │  │  Qwen 3.5 32B Q5_K_M          │     │    │
- │   │  Q4_K_M                    │  │                               │     │    │
+ │   │  Llama 4 Scout 109B        │  │  Qwen 2.5 32B Dense           │     │    │
+ │   │  Q4_K_M  (72% VRAM)        │  │  (23% VRAM)                   │     │    │
  │   │  alias: gpt-4o             │  │  alias: gpt-4o-mini            │     │    │
  │   └────────────────────────────┘  └───────────────────────────────┘     │    │
  │                                                                          │    │
@@ -67,7 +67,7 @@
  │   └───────────────────────────────────────────────────────────────────┘  │    │
  │                                                                          │    │
  │   ┌───────────────────────────────────────────────────────────────────┐  │    │
- │   │  NVIDIA RTX PRO 6000 Blackwell  VRAM 96GB                        │  │    │
+ │   │  NVIDIA RTX PRO 6000 Blackwell  VRAM 96GB / CUDA 12.8            │  │    │
  │   └───────────────────────────────────────────────────────────────────┘  │    │
  └──────────────────────────────────────────────────────────────────────────┘    │
                                    │
@@ -124,7 +124,7 @@ cocoro-core  :8001/chat
 POST http://192.168.50.112:8000/v1/chat/completions  (LiteLLM)
   │
   ├─[Primary]   model="gpt-4o"       → vLLM :8080  → Llama 4 Scout 109B Q4_K_M
-  ├─[Secondary] model="gpt-4o-mini"  → vLLM :8081  → Qwen 3.5 32B Q5_K_M
+  ├─[Secondary] model="gpt-4o-mini"  → vLLM :8081  → Qwen 2.5 32B Dense
   └─[Fallback]  model="claude-sonnet" → Gemini 2.5 Flash (クラウド)
   │
   ▼
@@ -142,7 +142,7 @@ Memory保存
 | リクエストモデル名 | ルーティング先 | 実モデル | 用途 |
 |-----------------|-------------|---------|------|
 | `gpt-4o` | vLLM Primary :8080 | Llama 4 Scout 109B Q4_K_M | 複雑なリクエスト・長文推論 |
-| `gpt-4o-mini` | vLLM Secondary :8081 | Qwen 3.5 32B Q5_K_M | 短文・日本語・高速応答 |
+| `gpt-4o-mini` | vLLM Secondary :8081 | Qwen 2.5 32B Dense | 短文・日本語・高速応答 |
 | `claude-sonnet` | Gemini API (クラウド) | Gemini 2.5 Flash | 障害時フォールバック |
 
 > **設計意図**: OpenAIクライアント互換のモデル名エイリアスを使用することで、cocoro-coreのコード変更なしにバックエンドLLMを切り替え可能。
@@ -186,48 +186,45 @@ cocoro-agent (192.168.50.86)
 
 ## 3. VRAM配分図（96GB 内訳）
 
-NVIDIA RTX PRO 6000 Blackwell — VRAM 96GB
+NVIDIA RTX PRO 6000 Blackwell — VRAM 96GB / CUDA 12.8
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │  VRAM 96GB 配分                                                              │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│  ██████████████████████████████████████████████  55GB                       │
+│  ████████████████████████████████████████████████████████████  69.1GB (72%)  │
 │  Llama 4 Scout 109B Q4_K_M                                                  │
 │  vLLM Primary  :8080   (alias: gpt-4o)                                      │
-│  モデルウェイト: 109B × 4.5bit/8 ≈ 61.3GB → テンソル並列化で55GBに圧縮       │
+│  モデルウェイト: 109B × 4.5bit/8 ≈ 61.3GB + KVキャッシュ でVRAMの72%を使用  │
 │                                                                              │
 │  ─────────────────────────────────────────────────                          │
 │                                                                              │
-│  ██████████████████  22GB                                                   │
-│  Qwen 3.5 32B Q5_K_M                                                        │
+│  ██████████████████████  22.1GB (23%)                                        │
+│  Qwen 2.5 32B Dense                                                          │
 │  vLLM Secondary  :8081   (alias: gpt-4o-mini)                               │
-│  モデルウェイト: 32B × 5.5bit/8 ≈ 22.0GB                                    │
+│  モデルウェイト: 32B Dense (非量子化) でVRAMの23%を使用                      │
 │                                                                              │
 │  ─────────────────────────────────────────────────                          │
 │                                                                              │
-│  ██████████  10GB                                                            │
-│  KVキャッシュプール                                                           │
-│  (両モデル共有 / GPU_MEMORY_UTILIZATION=0.90 で制御)                         │
-│                                                                              │
-│  ─────────────────────────────────────────────────                          │
-│                                                                              │
-│  █████████  9GB                                                              │
-│  予備 / システム / オーバーフローバッファ                                     │
+│  ████  4.8GB (5%)                                                            │
+│  KVキャッシュ予備 / システム / オーバーフローバッファ                         │
+│  (GPU_MEMORY_UTILIZATION=0.95 で制御)                                        │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
 
- 合計: 55 + 22 + 10 + 9 = 96GB
+ 合計: 69.1 + 22.1 + 4.8 ≈ 96GB  (72% + 23% + 5% = 100%)
 
  モデル計算根拠:
-   Q4_K_M: 約 4.5 bits/param  → 109,000M × 4.5 / 8 / 1024 ≈ 61.3 GB (テンソル並列で削減)
-   Q5_K_M: 約 5.5 bits/param  →  32,000M × 5.5 / 8 / 1024 ≈ 22.0 GB
+   Llama 4 Scout Q4_K_M: 約 4.5 bits/param → 109,000M × 4.5 / 8 / 1024 ≈ 61.3 GB + KV → 72%
+   Qwen 2.5 32B Dense  : フルパラメータ (BF16) → 32,000M × 16 / 8 / 1024 ≈ 62.5 GB ※
+   ※ Dense版は量子化なし。実際のロード量はvLLMのtensor_parallel設定で変化
 
  注意事項:
    - 実際の使用量はシーケンス長・バッチサイズにより変動
-   - vLLMのKVキャッシュはGPU_MEMORY_UTILIZATION=0.90 で制御
+   - vLLMのKVキャッシュはGPU_MEMORY_UTILIZATION で制御
    - 両モデル同時ロードでVRAMが逼迫する場合はQwenをCPUオフロード検討 [TODO]
+   - CUDA 12.8 / Blackwell (SM100) アーキテクチャ最適化済みビルド
 ```
 
 ---
@@ -238,7 +235,7 @@ NVIDIA RTX PRO 6000 Blackwell — VRAM 96GB
 
 | ホスト名 | IPアドレス | ハードウェア | OS | 役割 |
 |---------|-----------|------------|-----|------|
-| `cocoro-llm-server` | 192.168.50.112 | NVIDIA RTX PRO 6000 Blackwell (96GB VRAM) / 高性能CPU | Debian 13 | LLM推論専用サーバー ※新規構築中 |
+| `cocoro-llm-server` | 192.168.50.112 | NVIDIA RTX PRO 6000 Blackwell (96GB VRAM) / 高性能CPU | Debian 13 | LLM推論専用サーバー ※構築中 |
 | `miniPC-A` | 192.168.50.92 | Intel N95 / 16GB RAM / 512GB SSD NVMe | Debian 13 | cocoro-core / cocoro-console |
 | `miniPC-B` | 192.168.50.86 | Intel N95 / 16GB RAM / 512GB SSD NVMe | Debian 13 | cocoro-agent |
 | `mdl`（開発機） | 192.168.50.167 | 開発用ワークステーション | Linux | AntGravity / 開発環境 |
@@ -249,7 +246,7 @@ NVIDIA RTX PRO 6000 Blackwell — VRAM 96GB
 |--------|-----------|--------|---------|------|
 | cocoro-llm-server | 192.168.50.112 | :8000 | LiteLLM Gateway (OpenAI互換) | 構築中 |
 | cocoro-llm-server | 192.168.50.112 | :8080 | vLLM Primary — Llama 4 Scout 109B Q4_K_M | 構築中 |
-| cocoro-llm-server | 192.168.50.112 | :8081 | vLLM Secondary — Qwen 3.5 32B Q5_K_M | 構築中 |
+| cocoro-llm-server | 192.168.50.112 | :8081 | vLLM Secondary — Qwen 2.5 32B Dense | 構築中 |
 | cocoro-llm-server | 192.168.50.112 | :9090 | Prometheus (メトリクス収集) | 構築中 |
 | cocoro-llm-server | 192.168.50.112 | :3030 | Grafana (ダッシュボード) | 構築中 |
 | miniPC-A | 192.168.50.92 | :8001 | cocoro-core (FastAPI) | 稼働中 |
@@ -358,7 +355,8 @@ NVIDIA RTX PRO 6000 Blackwell — VRAM 96GB
 
 | 日付 | 更新内容 |
 |------|---------|
-| 2026-04-06 | 初版作成。ローカルLLMスタック（Llama 4 Scout / Qwen 3.5 / LiteLLM）を反映。VRAM配分・LiteLLMエイリアス・開発機mdl追加 |
+| 2026-04-07 | Qwen 2.5 32B Dense（非量子化）に修正。VRAM配分を実態比率（72%/23%/5%）に更新。CUDA 12.8追記 |
+| 2026-04-06 | 初版作成。ローカルLLMスタック（Llama 4 Scout / Qwen / LiteLLM）を反映。VRAM配分・LiteLLMエイリアス・開発機mdl追加 |
 
 ---
 
